@@ -65,8 +65,8 @@ def read_corenet_definition_data():
         })
 
         i += 1
-        if (i % 1000 == 0):
-            print(str(i) + 'item finished')
+        if (i % 100000 == 0):
+            print(str(i) + 'corenet data loaded...')
 
     f.close()
     return definition_list
@@ -77,11 +77,19 @@ def convert_deflist_to_sent_list(definition_list):
     '''
     sent_list = []
     for definiton in definition_list:
-        term = definiton['term']
-        text = term + '. ' \
-               + definiton['definition1'].replace('～',term) + ' ' \
-               + definiton['definition2'].replace('～',term) + ' ' \
-               + definiton['usuage'].replace('～',term)
+        text = convert_def_to_sentence(definiton)
         if (len(text) > 0):
             sent_list.append(text)
     return sent_list
+
+
+def convert_def_to_sentence(definiton):
+    '''
+    core net defintion에 있는 문장들을 합쳐서 하나의 문장으로 만든다.
+    '''
+    term = definiton['term']
+    text = term + '. ' \
+           + definiton['definition1'].replace('～', term) + ' ' \
+           + definiton['definition2'].replace('～', term) + ' ' \
+           + definiton['usuage'].replace('～', term)
+    return text
