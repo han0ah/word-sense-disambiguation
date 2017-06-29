@@ -5,5 +5,16 @@ class Disambiguater:
     추상 클래스
     각 Disambiguater 모듈들은 이 모듈을 상속받아서 정의된 interface를 구현한다.
     '''
+    def disambiguate(self):
+        return []
+
     def test(self, input):
         return '{"result":"ok"}'
+
+
+class BaselineDisambiguater(Disambiguater):
+    '''
+    Baseline Disambiguater TF-IDF를 활용한다.
+    '''
+    def disambiguate(self):
+        return []
