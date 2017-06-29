@@ -11,10 +11,15 @@ def get_pos_tag_result(text):
     '''
     etri_pos_url = 'http://143.248.135.60:31235/etri_pos'
     data = '{"text":"' + text + '"}'
-    req = urllib.request.Request(etri_pos_url, data=data.encode('utf-8'))
-    response = urllib.request.urlopen(req)
-    result = response.read().decode('utf-8')
-    return json.loads(result)
+    try:
+        req = urllib.request.Request(etri_pos_url, data=data.encode('utf-8'))
+        response = urllib.request.urlopen(req)
+        result = response.read().decode('utf-8')
+        result = json.loads(result)
+    except:
+        print ('error text : ' + text)
+        return []
+    return result
 
 def etri_tokenizer(text):
     '''
