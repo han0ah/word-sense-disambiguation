@@ -24,6 +24,12 @@ class Disambiguater:
         '''
         return []
 
+    def get_def_candidate_list(self, word):
+        '''
+        주어진 word의 후보가 될 수 있는 definition list를 가져온다.
+        '''
+        return []
+
 class BaselineDisambiguater(Disambiguater):
     '''
     Baseline Disambiguater. TF-IDF를 활용한다.
@@ -31,7 +37,7 @@ class BaselineDisambiguater(Disambiguater):
     def disambiguate(self, input):
         if not DataManager.isInitialized:
             return []
-        matching_def_list = self.get_matching_def_list(input['word'])
+        matching_def_list = self.get_def_candidate_list(input['word'])
 
         max_cos_similiarity =  -1 * math.inf
         max_word_def = None
@@ -49,13 +55,14 @@ class BaselineDisambiguater(Disambiguater):
             return []
         return [{
             'lemma' : max_word_def['term'],
-            'sensid' : max_word_def['vocnum'],
+            'sensid' : '(' + str(max_word_def['vocnum']) + ',' + str(max_word_def['semnum']) + ')',
             'definition' : max_word_def['definition1']
         }]
 
-    def get_matching_def_list(self, word):
+    def get_def_candidate_list(self, word):
         '''
-        해당 word와 일치하는 term을 갖는 corenet 상의 데이터 목록을 반환한다. 
+        주어진 word의 후보가 될 수 있는 definition list를 가져온다.
+        이 Baseline의 경우에는 term이 word랑 완전히 일치할 때만 반환.
         '''
         matching_def_list = []
         for word_def in DataManager.corenet_data:
