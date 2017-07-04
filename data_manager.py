@@ -1,4 +1,3 @@
-import data_util
 from sklearn.externals import joblib
 
 class DataManager():
@@ -13,9 +12,5 @@ class DataManager():
     @staticmethod
     def init_data():
         DataManager.tfidf_obj = joblib.load('./data/trained_tfidf.pkl')
-        DataManager.corenet_data = data_util.read_corenet_definition_data()
+        #DataManager.corenet_data = data_util.read_corenet_definition_data()
         DataManager.isInitialized = True
-
-
-
-

@@ -28,8 +28,37 @@ class Disambiguater:
     def get_def_candidate_list(self, word):
         '''
         주어진 word의 후보가 될 수 있는 definition list를 가져온다.
+        기본적으로 정확히 일치하는 것만 가져온다.
         '''
-        return []
+        return data_util.get_corenet_matching_def_list(word)
+
+
+    def get_word_origin_form(self, input):
+        '''
+        주어진 입력 텍스트 속의 단어를 CoreNet에서 사용하는 형식에 맞추어 반환하다.
+        e.g) '명사' -> 그대로, '동사,형용사' -> 원형+'다'(예: 멋있다, 이루어지다)
+        '''
+        nlp_result = data_util.get_nlp_test_result(input['text'])
+        if (nlp_result == None):
+            return input['word']
+
+        word_count = 0
+        begin_byteIdx = 0
+        for character in input['text']:
+            if (word_count == input['beginIdx']):
+                break
+            word_count += 1
+            begin_byteIdx += data_util.get_text_length_in_byte(character)
+
+        morphs = nlp_result['sentence'][0]['morp']
+        for morp in morphs:
+            if (morp['position'] == begin_byteIdx):
+                # 동사 or 형용사 일 경우 wordnet 포맷에 맞추어 원형+'다' 형태로 반환한다. e.g.) '멋있' + '다'
+                if (morp['type'] == 'VA' or morp['type'] == 'VV'):
+                    return morp['lemma'] + '다'
+
+        return input['word']
+
 
 class BaselineDisambiguater(Disambiguater):
     '''
@@ -38,6 +67,8 @@ class BaselineDisambiguater(Disambiguater):
     def disambiguate(self, input):
         if not DataManager.isInitialized:
             return []
+
+        input['word'] = self.get_word_origin_form(input)
         matching_def_list = self.get_def_candidate_list(input['word'])
 
         max_cos_similiarity =  -1 * math.inf
@@ -62,21 +93,13 @@ class BaselineDisambiguater(Disambiguater):
             'definition' : max_word_def['definition1']
         }]
 
-    def get_def_candidate_list(self, word):
-        '''
-        주어진 word의 후보가 될 수 있는 definition list를 가져온다.
-        이 Baseline의 경우에는 term이 word랑 완전히 일치할 때만 반환.
-        '''
-        matching_def_list = []
-        for word_def in DataManager.corenet_data:
-            if (word_def['term'] == word):
-                matching_def_list.append(word_def)
-        return matching_def_list
 
 class RandomDisambiguater(Disambiguater):
     def disambiguate(self, input):
         if not DataManager.isInitialized:
             return []
+
+        input['word'] = self.get_word_origin_form(input)
         matching_def_list = self.get_def_candidate_list(input['word'])
 
         random_value = random.randrange(0,len(matching_def_list)+1)
@@ -92,17 +115,6 @@ class RandomDisambiguater(Disambiguater):
             'definition': selected_def['definition1']
         }]
 
-    def get_def_candidate_list(self, word):
-        '''
-        주어진 word의 후보가 될 수 있는 definition list를 가져온다.
-        이 Disambiguater는 term이 word랑 완전히 일치할 때만 반환.
-        '''
-        matching_def_list = []
-        for word_def in DataManager.corenet_data:
-            if (word_def['term'] == word):
-                matching_def_list.append(word_def)
-        return matching_def_list
-
 if __name__ == "__main__":
     DataManager.init_data()
     m_disambiguater = BaselineDisambiguater()
@@ -110,5 +122,5 @@ if __name__ == "__main__":
         'text' : '밤나무의 열매. 가시가 많이 난 송이에 싸여 있고 갈색 겉껍질 안에 얇고 맛이 떫은 속껍질이 있다.',
         'word' : '밤',
         'beginIdx' : 0,
-        'endIdx': 1
+        'endIdx': 0
     })

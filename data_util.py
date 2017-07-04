@@ -1,9 +1,26 @@
+import corenet
 import time
 import json
 import urllib.request
 
 tokenize_count = 0
 token_start_time = 0
+
+def get_nlp_test_result(text):
+    '''
+        주어진 텍스트에 대해서 ETRI 텍스트 분석 결과를 반환한다. 
+        '''
+    etri_pos_url = 'http://143.248.135.20:22334/controller/service/etri_parser '
+    data = "sentence="+text
+    try:
+        req = urllib.request.Request(etri_pos_url, data=data.encode('utf-8'))
+        response = urllib.request.urlopen(req)
+        result = response.read().decode('utf-8')
+        result = json.loads(result)
+    except:
+        print('error text : ' + text)
+        return None
+    return result
 
 def get_pos_tag_result(text):
     '''
@@ -98,3 +115,41 @@ def convert_def_to_sentence(definiton):
            + definiton['definition2'].replace('～', term) + ' ' \
            + definiton['usuage'].replace('～', term)
     return text
+
+
+def get_text_length_in_byte(text):
+    return len(str.encode(text))
+
+
+def get_corenet_matching_def_list(word):
+    '''
+    주어진 word와 일치하는 corenet 상의 표제어들의 정의 목록을 반환한다. 
+    '''
+    matching_def_list = []
+    matching_semnum_list = corenet.getSemnum(word)
+    for semnum in matching_semnum_list:
+        definition1 = corenet.getDefinition(word, semnum['vocnum'], semnum['semnum'])
+        if (type(definition1) == float):
+            definition1 = ''
+
+        usuage = corenet.getUsage(word, semnum['vocnum'], semnum['semnum'])
+        if (type(usuage) == float):
+            usuage = ''
+
+        pos = corenet.getPos(word, semnum['vocnum'], semnum['semnum'])
+
+        item = {
+            'term' : word,
+            'vocnum' : int(semnum['vocnum']),
+            'semnum' : int(semnum['semnum']),
+            'definition1' : definition1,
+            'definition2' : '',
+            'usuage' : usuage,
+            'pos' : pos
+        }
+        matching_def_list.append(item)
+
+
+    return matching_def_list
+
+
