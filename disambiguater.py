@@ -50,12 +50,12 @@ class Disambiguater:
             word_count += 1
             begin_byteIdx += data_util.get_text_length_in_byte(character)
 
-        morphs = nlp_result['sentence'][0]['morp']
+        morphs = nlp_result['sentence'][0]['WSD']
         for morp in morphs:
             if (morp['position'] == begin_byteIdx):
                 # 동사 or 형용사 일 경우 wordnet 포맷에 맞추어 원형+'다' 형태로 반환한다. e.g.) '멋있' + '다'
                 if (morp['type'] == 'VA' or morp['type'] == 'VV'):
-                    return morp['lemma'] + '다'
+                    return morp['text'] + '다'
 
         return input['word']
 
@@ -75,7 +75,7 @@ class BaselineDisambiguater(Disambiguater):
         max_word_def = None
 
         for cornet_def in matching_def_list:
-            if (len(cornet_def['definition1']) < 1):
+            if (len(cornet_def['definition1']) < 1 and len(cornet_def['usuage']) < 1):
                 continue
             input_text = input['text']
             cornet_def_sent = data_util.convert_def_to_sentence(cornet_def)
@@ -115,12 +115,72 @@ class RandomDisambiguater(Disambiguater):
             'definition': selected_def['definition1']
         }]
 
+class DemoDisambiguater(Disambiguater):
+    '''
+    데모용 Disambiguater. 문장 하나만 입력으로 받고 문장 내의 모든 일반 명사에 대해서 WSD를 한다.
+    '''
+    def disambiguate(self, input):
+        if not DataManager.isInitialized:
+            return []
+
+        text = input['text']
+        nlp_result = data_util.get_nlp_test_result(text)
+        if (nlp_result == None):
+            return {'wsd_result':[]}
+
+        morp_list = nlp_result['sentence'][0]['WSD']
+
+        output_ary = []
+
+        for morp in morp_list:
+            word = morp['text']
+            if (morp['type'] == 'NNG'):
+
+                matching_def_list = self.get_def_candidate_list(word)
+
+                max_cos_similiarity = -1 * math.inf
+                max_word_def = None
+
+                for cornet_def in matching_def_list:
+                    if (len(cornet_def['definition1']) < 1 and len(cornet_def['usuage']) < 1):
+                        continue
+                    input_text = input['text']
+                    cornet_def_sent = data_util.convert_def_to_sentence(cornet_def)
+                    sentences = [input_text, cornet_def_sent]
+                    vec = DataManager.tfidf_obj.transform(sentences)
+                    cos_similarity = cosine_similarity(vec)[0][1]
+                    if (cos_similarity > max_cos_similiarity):
+                        max_cos_similiarity, max_word_def = cos_similarity, cornet_def
+                if (max_word_def == None):
+                    continue
+
+                # beginIdx 구하기
+                chr_cnt = 0
+                position_cnt = 0
+                beginIdx = 0
+                for chr in text:
+                    if (position_cnt == morp['position']):
+                        beginIdx = chr_cnt
+                        break
+                    chr_cnt += 1
+                    position_cnt += data_util.get_text_length_in_byte(chr)
+                endIdx = beginIdx + len(morp['text']) - 1
+                output_ary.append({
+                    'lemma' : max_word_def['term'],
+                    'senseid' : '(' + str(max_word_def['vocnum']) + ',' + str(max_word_def['semnum']) + ')',
+                    'definition' : max_word_def['definition1'],
+                    'beginIdx' : beginIdx,
+                    'endIdx' : endIdx,
+                    'score' : max_cos_similiarity
+                })
+
+        return {'wsd_result' : output_ary}
+
+
+
 if __name__ == "__main__":
     DataManager.init_data()
-    m_disambiguater = BaselineDisambiguater()
-    m_disambiguater.disambiguate({
-        'text' : '밤나무의 열매. 가시가 많이 난 송이에 싸여 있고 갈색 겉껍질 안에 얇고 맛이 떫은 속껍질이 있다.',
-        'word' : '밤',
-        'beginIdx' : 0,
-        'endIdx': 0
+    m_disambiguater = DemoDisambiguater()
+    result = m_disambiguater.disambiguate({
+        'text' : '김해시 시장 김봉철은 익일 점심으로 비빔밥과 야채죽을 먹었다.'
     })
