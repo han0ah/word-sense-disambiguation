@@ -172,7 +172,7 @@ class DemoDisambiguater(Disambiguater):
                 except:
                     wordnet = []
 
-                en_synset = wordnet[0]['synset'] if len(wordnet) > 0 else ''
+                en_synset = wordnet[0]['synset'].replace("Synset('","").replace(")","") if len(wordnet) > 0 else ''
                 en_lemmas = wordnet[0]['lemmas'] if len(wordnet) > 0 else []
                 en_definition = wordnet[0]['definition'] if len(wordnet) > 0 else ''
 
