@@ -142,7 +142,7 @@ class DemoDisambiguater(Disambiguater):
                 max_word_def = None
 
                 for cornet_def in matching_def_list:
-                    if (len(cornet_def['definition1']) < 1 and len(cornet_def['usuage']) < 1):
+                    if (len(cornet_def['definition1']) < 1):
                         continue
                     input_text = input['text']
                     cornet_def_sent = data_util.convert_def_to_sentence(cornet_def)
@@ -169,6 +169,7 @@ class DemoDisambiguater(Disambiguater):
                     'lemma' : max_word_def['term'],
                     'senseid' : '(' + str(max_word_def['vocnum']) + ',' + str(max_word_def['semnum']) + ')',
                     'definition' : max_word_def['definition1'],
+                    'usuage' : max_word_def['usuage'],
                     'beginIdx' : beginIdx,
                     'endIdx' : endIdx,
                     'score' : max_cos_similiarity
@@ -184,3 +185,4 @@ if __name__ == "__main__":
     result = m_disambiguater.disambiguate({
         'text' : '김해시 시장 김봉철은 익일 점심으로 비빔밥과 야채죽을 먹었다.'
     })
+    print(result)
