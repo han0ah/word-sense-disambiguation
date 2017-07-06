@@ -1,3 +1,4 @@
+import corenet
 import math
 import data_util
 import random
@@ -165,6 +166,16 @@ class DemoDisambiguater(Disambiguater):
                     chr_cnt += 1
                     position_cnt += data_util.get_text_length_in_byte(chr)
                 endIdx = beginIdx + len(morp['text']) - 1
+
+                try:
+                    wordnet = corenet.getWordnet(word, float(max_word_def['vocnum']), float(max_word_def['semnum']))
+                except:
+                    wordnet = []
+
+                en_synset = wordnet[0]['synset'] if len(wordnet) > 0 else ''
+                en_lemmas = wordnet[0]['lemmas'] if len(wordnet) > 0 else []
+                en_definition = wordnet[0]['definition'] if len(wordnet) > 0 else ''
+
                 output_ary.append({
                     'lemma' : max_word_def['term'],
                     'senseid' : '(' + str(max_word_def['vocnum']) + ',' + str(max_word_def['semnum']) + ')',
@@ -172,7 +183,10 @@ class DemoDisambiguater(Disambiguater):
                     'usuage' : max_word_def['usuage'],
                     'beginIdx' : beginIdx,
                     'endIdx' : endIdx,
-                    'score' : max_cos_similiarity
+                    'score' : max_cos_similiarity,
+                    'en_synset': en_synset,
+                    'en_lemmas' : en_lemmas,
+                    'en_definition' : en_definition,
                 })
 
         return {'wsd_result' : output_ary}

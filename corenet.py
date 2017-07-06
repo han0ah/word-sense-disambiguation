@@ -23,8 +23,7 @@ def loadCoreNet():
 
     wnLink = pandas.read_csv('./data/corenet/wnLink.dat',skiprows=4,header=None,delimiter='\t',names=['kortermnum','concept_en','wn_synset_rel'],index_col=['kortermnum'])
 
-    goi2wn30 = []
-    #goi2wn30 = pandas.read_csv('./data/corenet/goi2wn30.tab',skiprows=9,header=None,delimiter='\t',names  =['nttnum','wn3id','rel'],index_col=['nttnum'])
+    goi2wn30 = pandas.read_csv('./data/corenet/goi2wn30.tab',skiprows=9,header=None,delimiter='\t',names  =['nttnum','wn3id','rel'],index_col=['nttnum'])
 
     return hanwoo, koWord, cjkConcept, wnLink, goi2wn30
 
@@ -39,7 +38,7 @@ def getKorterm(lemma, vocnum, semnum):
     data = koWord.loc[[lemma],['vocnum','semnum','kortermnum']].to_dict(orient='records')
     kortermnum = ''
     l = []
-    with open('./data/corenet/wnLink.dat') as f:
+    with open('./data/corenet/wnLink.dat', encoding='utf-8') as f:
         for line in f:
             k = line.split()[0]
             l.append(k)
