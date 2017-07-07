@@ -2,6 +2,8 @@ import corenet
 import math
 import data_util
 import random
+import operator
+import time
 from data_manager import DataManager
 from sklearn.metrics.pairwise import cosine_similarity
 
@@ -121,6 +123,7 @@ class DemoDisambiguater(Disambiguater):
     데모용 Disambiguater. 문장 하나만 입력으로 받고 문장 내의 모든 일반 명사에 대해서 WSD를 한다.
     '''
     def disambiguate(self, input):
+        ttime = int(round(time.time() * 1000))
         if not DataManager.isInitialized:
             return []
 
@@ -140,22 +143,30 @@ class DemoDisambiguater(Disambiguater):
                 if (morp['type'] == 'NNG'):
 
                     matching_def_list = self.get_def_candidate_list(word)
+                    if (len(matching_def_list) < 1):
+                        continue
 
-                    max_cos_similiarity = -1 * math.inf
-                    max_word_def = None
-
-                    for cornet_def in matching_def_list:
+                    for i in range(len(matching_def_list)):
+                        cornet_def = matching_def_list[i]
                         if (len(cornet_def['definition1']) < 1):
+                            cornet_def['cos_similarity'] = 0.0
                             continue
+                        if (i > 0):
+                            is_duplicate = False
+                            for j in range(i):
+                                prev_def = matching_def_list[j]
+                                if (prev_def['vocnum'] == cornet_def['vocnum'] and prev_def['semnum'] == cornet_def['semnum']):
+                                    is_duplicate = True
+                                    break
+                            if (is_duplicate):
+                                cornet_def['cos_similarity'] = 0.0
+                                continue
                         input_text = input['text']
                         cornet_def_sent = data_util.convert_def_to_sentence(cornet_def)
                         sentences = [input_text, cornet_def_sent]
                         vec = DataManager.tfidf_obj.transform(sentences)
                         cos_similarity = cosine_similarity(vec)[0][1]
-                        if (cos_similarity > max_cos_similiarity):
-                            max_cos_similiarity, max_word_def = cos_similarity, cornet_def
-                    if (max_word_def == None):
-                        continue
+                        cornet_def['cos_similarity'] = cos_similarity
 
                     # beginIdx 구하기
                     chr_cnt = 0
@@ -169,29 +180,36 @@ class DemoDisambiguater(Disambiguater):
                         position_cnt += data_util.get_text_length_in_byte(chr)
                     endIdx = beginIdx + len(morp['text']) - 1
 
-                    try:
-                        wordnet = corenet.getWordnet(word, float(max_word_def['vocnum']), float(max_word_def['semnum']))
-                    except:
-                        wordnet = []
+                    matching_def_list = sorted(matching_def_list, key=operator.itemgetter('cos_similarity'), reverse=True)
+                    one_word_ary = []
+                    for i in range(len(matching_def_list)):
+                        word_def = matching_def_list[i]
+                        if (word_def['cos_similarity'] < 0.0001):
+                            break
+                        try:
+                            wordnet = corenet.getWordnet(word, float(word_def['vocnum']), float(word_def['semnum']))
+                        except:
+                            wordnet = []
 
-                    en_synset = wordnet[0]['synset']._name if len(wordnet) > 0 else ''
-                    en_lemmas = wordnet[0]['lemmas'] if len(wordnet) > 0 else []
-                    en_definition = wordnet[0]['definition'] if len(wordnet) > 0 else ''
+                        en_synset = wordnet[0]['synset']._name if len(wordnet) > 0 else ''
+                        en_lemmas = wordnet[0]['lemmas'] if len(wordnet) > 0 else []
+                        en_definition = wordnet[0]['definition'] if len(wordnet) > 0 else ''
 
-                    output_ary.append({
-                        'lemma' : max_word_def['term'],
-                        'senseid' : '(' + str(max_word_def['vocnum']) + ',' + str(max_word_def['semnum']) + ')',
-                        'definition' : max_word_def['definition1'],
-                        'usuage' : max_word_def['usuage'],
-                        'beginIdx' : beginIdx,
-                        'endIdx' : endIdx,
-                        'score' : max_cos_similiarity,
-                        'en_synset': en_synset,
-                        'en_lemmas' : en_lemmas,
-                        'en_definition' : en_definition,
-                    })
+                        one_word_ary.append({
+                            'lemma' : word_def['term'],
+                            'senseid' : '(' + str(word_def['vocnum']) + ',' + str(word_def['semnum']) + ')',
+                            'definition' : word_def['definition1'],
+                            'usuage' : word_def['usuage'],
+                            'beginIdx' : beginIdx,
+                            'endIdx' : endIdx,
+                            'score' : word_def['cos_similarity'],
+                            'en_synset': en_synset,
+                            'en_lemmas' : en_lemmas,
+                            'en_definition' : en_definition,
+                        })
+                    output_ary.append(one_word_ary)
             final_output_ary.append(output_ary)
-
+        print ('time_elapsed %d'%(int(round(time.time()*1000)) - ttime))
         return {'wsd_result' : final_output_ary}
 
 
@@ -200,6 +218,6 @@ if __name__ == "__main__":
     DataManager.init_data()
     m_disambiguater = DemoDisambiguater()
     result = m_disambiguater.disambiguate({
-        'text' : '김해시 시장. 밤을 먹었다.'
+        'text' : '애플은 스티브 잡스와 스티브 워즈니악과 론 웨인이 1976년에 설립한 컴퓨터 회사이다. 이전 명칭은 애플 컴퓨터였다. 최초의 개인용 컴퓨터 중 하나이며, 최초로 키보드와 모니터를 가지고 있는 애플 I을 출시하였고, 애플 II는 공전의 히트작이 되어 개인용 컴퓨터의 시대를 열었다.'
     })
     print(result)
