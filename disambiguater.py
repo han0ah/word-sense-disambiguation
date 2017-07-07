@@ -127,6 +127,12 @@ class DemoDisambiguater(Disambiguater):
         if not DataManager.isInitialized:
             return []
 
+        is_FAST_mode = False
+
+        if ('fast_mode' in input):
+            if (input['fast_mode'] == 'true' or input['fast_mode'] == 'True'):
+                is_FAST_mode = True
+
         text = input['text']
         nlp_result = data_util.get_nlp_test_result(text)
         if (nlp_result == None):
@@ -141,8 +147,10 @@ class DemoDisambiguater(Disambiguater):
             for morp in morp_list:
                 word = morp['text']
                 if (morp['type'] == 'NNG'):
-
-                    matching_def_list = self.get_def_candidate_list(word)
+                    if (is_FAST_mode):
+                        matching_def_list = data_util.get_corenet_matching_def_list2(word)
+                    else:
+                        matching_def_list = self.get_def_candidate_list(word)
                     if (len(matching_def_list) < 1):
                         continue
 
@@ -218,6 +226,6 @@ if __name__ == "__main__":
     DataManager.init_data()
     m_disambiguater = DemoDisambiguater()
     result = m_disambiguater.disambiguate({
-        'text' : '애플은 스티브 잡스와 스티브 워즈니악과 론 웨인이 1976년에 설립한 컴퓨터 회사이다. 이전 명칭은 애플 컴퓨터였다. 최초의 개인용 컴퓨터 중 하나이며, 최초로 키보드와 모니터를 가지고 있는 애플 I을 출시하였고, 애플 II는 공전의 히트작이 되어 개인용 컴퓨터의 시대를 열었다.'
+        'fast_mode':'true','text' : '애플은 스티브 잡스와 스티브 워즈니악과 론 웨인이 1976년에 설립한 컴퓨터 회사이다. 이전 명칭은 애플 컴퓨터였다. 최초의 개인용 컴퓨터 중 하나이며, 최초로 키보드와 모니터를 가지고 있는 애플 I을 출시하였고, 애플 II는 공전의 히트작이 되어 개인용 컴퓨터의 시대를 열었다.'
     })
     print(result)
