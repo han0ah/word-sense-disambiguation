@@ -126,10 +126,13 @@ def get_corenet_matching_def_list(word):
     주어진 word와 일치하는 corenet 상의 표제어들의 정의 목록을 반환한다. 
     '''
     matching_def_list = []
+
     try :
         matching_semnum_list = corenet.getSemnum(word)
     except:
         return []
+
+
     for semnum in matching_semnum_list:
         definition1 = corenet.getDefinition(word, semnum['vocnum'], semnum['semnum'])
         if (type(definition1) == float):
@@ -155,7 +158,36 @@ def get_corenet_matching_def_list(word):
         }
         matching_def_list.append(item)
 
-
     return matching_def_list
 
 
+def get_corenet_matching_def_list2(word):
+    '''
+    주어진 word와 일치하는 corenet 상의 표제어들의 정의 목록을 반환한다. 
+    '''
+    matching_def_list = []
+
+    try :
+        matching_corenet_list = corenet.getCoreNet(word)
+    except:
+        return []
+    for corenet_data in matching_corenet_list:
+        definition1 = corenet_data['definition']
+        if (type(definition1) == float or definition1 == 'None'):
+            definition1 = ''
+        usuage = corenet_data['usage']
+        if (type(usuage) == float or usuage == 'None'):
+           usuage = ''
+
+        item = {
+            'term': word,
+            'vocnum': int(corenet_data['vocnum']),
+            'semnum': int(corenet_data['semnum']),
+            'definition1': definition1,
+            'definition2': '',
+            'usuage': usuage,
+            'pos': corenet_data['pos']
+        }
+        matching_def_list.append(item)
+
+    return matching_def_list
