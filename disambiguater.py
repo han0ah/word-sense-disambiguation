@@ -129,67 +129,70 @@ class DemoDisambiguater(Disambiguater):
         if (nlp_result == None):
             return {'wsd_result':[]}
 
-        morp_list = nlp_result['sentence'][0]['WSD']
+        nlp_result = nlp_result['sentence']
 
-        output_ary = []
+        final_output_ary = []
+        for sent_nlp_result in nlp_result:
+            morp_list = sent_nlp_result['WSD']
+            output_ary = []
+            for morp in morp_list:
+                word = morp['text']
+                if (morp['type'] == 'NNG'):
 
-        for morp in morp_list:
-            word = morp['text']
-            if (morp['type'] == 'NNG'):
+                    matching_def_list = self.get_def_candidate_list(word)
 
-                matching_def_list = self.get_def_candidate_list(word)
+                    max_cos_similiarity = -1 * math.inf
+                    max_word_def = None
 
-                max_cos_similiarity = -1 * math.inf
-                max_word_def = None
-
-                for cornet_def in matching_def_list:
-                    if (len(cornet_def['definition1']) < 1):
+                    for cornet_def in matching_def_list:
+                        if (len(cornet_def['definition1']) < 1):
+                            continue
+                        input_text = input['text']
+                        cornet_def_sent = data_util.convert_def_to_sentence(cornet_def)
+                        sentences = [input_text, cornet_def_sent]
+                        vec = DataManager.tfidf_obj.transform(sentences)
+                        cos_similarity = cosine_similarity(vec)[0][1]
+                        if (cos_similarity > max_cos_similiarity):
+                            max_cos_similiarity, max_word_def = cos_similarity, cornet_def
+                    if (max_word_def == None):
                         continue
-                    input_text = input['text']
-                    cornet_def_sent = data_util.convert_def_to_sentence(cornet_def)
-                    sentences = [input_text, cornet_def_sent]
-                    vec = DataManager.tfidf_obj.transform(sentences)
-                    cos_similarity = cosine_similarity(vec)[0][1]
-                    if (cos_similarity > max_cos_similiarity):
-                        max_cos_similiarity, max_word_def = cos_similarity, cornet_def
-                if (max_word_def == None):
-                    continue
 
-                # beginIdx 구하기
-                chr_cnt = 0
-                position_cnt = 0
-                beginIdx = 0
-                for chr in text:
-                    if (position_cnt == morp['position']):
-                        beginIdx = chr_cnt
-                        break
-                    chr_cnt += 1
-                    position_cnt += data_util.get_text_length_in_byte(chr)
-                endIdx = beginIdx + len(morp['text']) - 1
+                    # beginIdx 구하기
+                    chr_cnt = 0
+                    position_cnt = 0
+                    beginIdx = 0
+                    for chr in text:
+                        if (position_cnt == morp['position']):
+                            beginIdx = chr_cnt
+                            break
+                        chr_cnt += 1
+                        position_cnt += data_util.get_text_length_in_byte(chr)
+                    endIdx = beginIdx + len(morp['text']) - 1
 
-                try:
-                    wordnet = corenet.getWordnet(word, float(max_word_def['vocnum']), float(max_word_def['semnum']))
-                except:
-                    wordnet = []
+                    try:
+                        wordnet = corenet.getWordnet(word, float(max_word_def['vocnum']), float(max_word_def['semnum']))
+                    except:
+                        wordnet = []
 
-                en_synset = wordnet[0]['synset']._name if len(wordnet) > 0 else ''
-                en_lemmas = wordnet[0]['lemmas'] if len(wordnet) > 0 else []
-                en_definition = wordnet[0]['definition'] if len(wordnet) > 0 else ''
+                    en_synset = wordnet[0]['synset']._name if len(wordnet) > 0 else ''
+                    en_lemmas = wordnet[0]['lemmas'] if len(wordnet) > 0 else []
+                    en_definition = wordnet[0]['definition'] if len(wordnet) > 0 else ''
 
-                output_ary.append({
-                    'lemma' : max_word_def['term'],
-                    'senseid' : '(' + str(max_word_def['vocnum']) + ',' + str(max_word_def['semnum']) + ')',
-                    'definition' : max_word_def['definition1'],
-                    'usuage' : max_word_def['usuage'],
-                    'beginIdx' : beginIdx,
-                    'endIdx' : endIdx,
-                    'score' : max_cos_similiarity,
-                    'en_synset': en_synset,
-                    'en_lemmas' : en_lemmas,
-                    'en_definition' : en_definition,
-                })
+                    output_ary.append({
+                        'lemma' : max_word_def['term'],
+                        'senseid' : '(' + str(max_word_def['vocnum']) + ',' + str(max_word_def['semnum']) + ')',
+                        'definition' : max_word_def['definition1'],
+                        'usuage' : max_word_def['usuage'],
+                        'beginIdx' : beginIdx,
+                        'endIdx' : endIdx,
+                        'score' : max_cos_similiarity,
+                        'en_synset': en_synset,
+                        'en_lemmas' : en_lemmas,
+                        'en_definition' : en_definition,
+                    })
+            final_output_ary.append(output_ary)
 
-        return {'wsd_result' : output_ary}
+        return {'wsd_result' : final_output_ary}
 
 
 
@@ -197,6 +200,6 @@ if __name__ == "__main__":
     DataManager.init_data()
     m_disambiguater = DemoDisambiguater()
     result = m_disambiguater.disambiguate({
-        'text' : '김해시 시장 김봉철은 익일 점심으로 비빔밥과 야채죽을 먹었다.'
+        'text' : '김해시 시장. 밤을 먹었다.'
     })
     print(result)
