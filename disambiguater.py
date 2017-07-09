@@ -215,8 +215,10 @@ class DemoDisambiguater(Disambiguater):
                             'en_lemmas' : en_lemmas,
                             'en_definition' : en_definition,
                         })
-                    output_ary.append(one_word_ary)
-            final_output_ary.append(output_ary)
+                    if (len(one_word_ary) > 0):
+                        output_ary.append(one_word_ary)
+            if (len(output_ary) > 0):
+                final_output_ary.append(output_ary)
         print ('time_elapsed %d'%(int(round(time.time()*1000)) - ttime))
         return {'wsd_result' : final_output_ary}
 
@@ -226,6 +228,6 @@ if __name__ == "__main__":
     DataManager.init_data()
     m_disambiguater = DemoDisambiguater()
     result = m_disambiguater.disambiguate({
-        'fast_mode':'true','text' : '애플은 스티브 잡스와 스티브 워즈니악과 론 웨인이 1976년에 설립한 컴퓨터 회사이다. 이전 명칭은 애플 컴퓨터였다. 최초의 개인용 컴퓨터 중 하나이며, 최초로 키보드와 모니터를 가지고 있는 애플 I을 출시하였고, 애플 II는 공전의 히트작이 되어 개인용 컴퓨터의 시대를 열었다.'
+        'text' : '애플은 스티브 잡스와 스티브 워즈니악과 론 웨인이 1976년에 설립한 컴퓨터 회사이다. 이전 명칭은 애플 컴퓨터였다. 최초의 개인용 컴퓨터 중 하나이며, 최초로 키보드와 모니터를 가지고 있는 애플 I을 출시하였고, 애플 II는 공전의 히트작이 되어 개인용 컴퓨터의 시대를 열었다.'
     })
     print(result)
