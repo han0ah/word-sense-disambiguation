@@ -133,7 +133,7 @@ class DemoDisambiguater(Disambiguater):
             return {'wsd_result':[]}
 
         nlp_result = nlp_result['sentence']
-
+        input_vector = DataManager.tfidf_obj.transform([text])
         final_output_ary = []
         for sent_nlp_result in nlp_result:
             morp_list = sent_nlp_result['WSD']
@@ -161,11 +161,11 @@ class DemoDisambiguater(Disambiguater):
                             if (is_duplicate):
                                 cornet_def['cos_similarity'] = 0.0
                                 continue
-                        input_text = input['text']
+
                         cornet_def_sent = data_util.convert_def_to_sentence(cornet_def)
-                        sentences = [input_text, cornet_def_sent]
-                        vec = DataManager.tfidf_obj.transform(sentences)
-                        cos_similarity = cosine_similarity(vec)[0][1]
+                        sentences = [cornet_def_sent]
+                        def_sent_vector = DataManager.tfidf_obj.transform(sentences)
+                        cos_similarity = cosine_similarity(input_vector, def_sent_vector)[0][0]
                         cornet_def['cos_similarity'] = cos_similarity
 
                     # beginIdx 구하기
