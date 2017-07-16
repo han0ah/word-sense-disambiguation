@@ -161,7 +161,7 @@ def get_corenet_matching_def_list(word):
     return matching_def_list
 
 
-def get_corenet_matching_def_list2(word):
+def get_hanwoo_dic_matching_def_list(word):
     '''
     주어진 word와 일치하는 corenet 상의 표제어들의 정의 목록을 반환한다. 
     '''
