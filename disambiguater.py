@@ -123,6 +123,9 @@ class DemoDisambiguater(Disambiguater):
     데모용 Disambiguater. 문장 하나만 입력으로 받고 문장 내의 모든 일반 명사에 대해서 WSD를 한다.
     '''
     def disambiguate(self, input):
+        get_def_list_time = 0
+        tfidf_time = 0
+        get_wordnet_time = 0
         ttime = int(round(time.time() * 1000))
         if not DataManager.isInitialized:
             return []
@@ -142,10 +145,13 @@ class DemoDisambiguater(Disambiguater):
                 word = morp['text']
                 if (morp['type'] == 'NNG'):
 
+                    st_time = int(time.time()*1000)
                     matching_def_list = data_util.get_hanwoo_dic_matching_def_list(word)
+                    get_def_list_time += (int(time.time()*1000) - st_time)
                     if (len(matching_def_list) < 1):
                         continue
 
+                    st_time = int(time.time() * 1000)
                     for i in range(len(matching_def_list)):
                         cornet_def = matching_def_list[i]
                         if (len(cornet_def['definition1']) < 1):
@@ -167,6 +173,7 @@ class DemoDisambiguater(Disambiguater):
                         def_sent_vector = DataManager.tfidf_obj.transform(sentences)
                         cos_similarity = cosine_similarity(input_vector, def_sent_vector)[0][0]
                         cornet_def['cos_similarity'] = cos_similarity
+                    tfidf_time += (int(time.time() * 1000) - st_time)
 
                     # beginIdx 구하기
                     chr_cnt = 0
@@ -182,6 +189,7 @@ class DemoDisambiguater(Disambiguater):
 
                     matching_def_list = sorted(matching_def_list, key=operator.itemgetter('cos_similarity'), reverse=True)
                     one_word_ary = []
+                    st_time = int(time.time() * 1000)
                     for i in range(len(matching_def_list)):
                         word_def = matching_def_list[i]
                         if (word_def['cos_similarity'] < 0.0001):
@@ -207,10 +215,16 @@ class DemoDisambiguater(Disambiguater):
                             'en_lemmas' : en_lemmas,
                             'en_definition' : en_definition,
                         })
+                    elapsed = (int(time.time() * 1000) - st_time)
+                    print ('--------------wordnet : %d'%(elapsed))
+                    get_wordnet_time += elapsed
                     if (len(one_word_ary) > 0):
                         output_ary.append(one_word_ary)
             if (len(output_ary) > 0):
                 final_output_ary.append(output_ary)
+        print ('get_def_list_time %d'%get_def_list_time)
+        print('tfidf_time %d' % tfidf_time)
+        print('wordnet_time %d' % get_wordnet_time)
         print ('time_elapsed %d'%(int(round(time.time()*1000)) - ttime))
         return {'wsd_result' : final_output_ary}
 
