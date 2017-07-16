@@ -22,12 +22,15 @@ def loadCoreNet():
     cjkConcept = pandas.read_csv('./data/corenet/cjkConcept.dat', skiprows=14,header=None,delimiter='\t',names=['idx','kortermnum','parentkortermnum','nttnum','chinttname','japnttname','kornttname','gernttname'], index_col=['kortermnum'])
 
     wnLink = pandas.read_csv('./data/corenet/wnLink.dat',skiprows=4,header=None,delimiter='\t',names=['kortermnum','concept_en','wn_synset_rel'],index_col=['kortermnum'])
+    kortermnum_list = []
+    for index, row in wnLink.iterrows():
+        kortermnum_list.append(index)
 
     goi2wn30 = pandas.read_csv('./data/corenet/goi2wn30.tab',skiprows=9,header=None,delimiter='\t',names  =['nttnum','wn3id','rel'],index_col=['nttnum'])
 
-    return hanwoo, koWord, cjkConcept, wnLink, goi2wn30
+    return hanwoo, koWord, cjkConcept, wnLink, goi2wn30, kortermnum_list
 
-hanwoo, koWord, cjkConcept, wnLink, goi2wn30 = loadCoreNet()
+hanwoo, koWord, cjkConcept, wnLink, goi2wn30, kortermnum_list = loadCoreNet()
 
 # core API
 def getHanwoo(arg):
@@ -37,11 +40,8 @@ def getHanwoo(arg):
 def getKorterm(lemma, vocnum, semnum):
     data = koWord.loc[[lemma],['vocnum','semnum','kortermnum']].to_dict(orient='records')
     kortermnum = ''
-    l = []
-    with open('./data/corenet/wnLink.dat', encoding='utf-8') as f:
-        for line in f:
-            k = line.split()[0]
-            l.append(k)
+    l = kortermnum_list
+
     for i in data:
         if i['vocnum'] == vocnum and i['semnum'] == semnum:
             for j in l:
@@ -110,7 +110,7 @@ def getSynsets(kortermnum):
     synsets = []
     wn3ids = getWn3ids(kortermnum)
     for ids in wn3ids:
-        offset = ids['wn3id']
+        offset = ids['wn3id'] #TODO : goi2wn30 참조해서 synonym인 것 만 가져오도록
         synset = wordnet.of2ss(offset)
         synsets.append(synset)
     return synsets
