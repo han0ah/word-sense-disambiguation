@@ -110,7 +110,7 @@ def getSynsets(kortermnum):
     synsets = []
     wn3ids = getWn3ids(kortermnum)
     for ids in wn3ids:
-        offset = ids['wn3id'] #TODO : goi2wn30 참조해서 synonym인 것 만 가져오도록
+        offset = ids['wn3id']
         rel = ids['rel']
         if (rel == 'synonym'):
             synset = wordnet.of2ss(offset)
