@@ -103,7 +103,7 @@ def getWn2id(kortermnum):
 
 def getWn3ids(kortermnum):
     nttnum = cjkConcept.loc[[kortermnum],['nttnum']].to_dict(orient='records')[0]['nttnum']
-    wn3ids = goi2wn30.loc[[nttnum],['wn3id']].to_dict(orient='records')#[0]['wn3id']
+    wn3ids = goi2wn30.loc[[nttnum],['wn3id','rel']].to_dict(orient='records')#[0]['wn3id']
     return wn3ids
 
 def getSynsets(kortermnum):
@@ -111,8 +111,10 @@ def getSynsets(kortermnum):
     wn3ids = getWn3ids(kortermnum)
     for ids in wn3ids:
         offset = ids['wn3id'] #TODO : goi2wn30 참조해서 synonym인 것 만 가져오도록
-        synset = wordnet.of2ss(offset)
-        synsets.append(synset)
+        rel = ids['rel']
+        if (rel == 'synonym'):
+            synset = wordnet.of2ss(offset)
+            synsets.append(synset)
     return synsets
 
 
