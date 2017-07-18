@@ -159,14 +159,24 @@ def getCoreNet(arg):
         semnum = i['semnum']
         vocnum = i['vocnum']
         lemma = arg
-        kortermnum = getKorterm(lemma, vocnum, semnum)
-        pos = getPos(lemma, vocnum, semnum)
+
+        #kortermnum = getKorterm(lemma, vocnum, semnum) TODO : 데모 속도 향상을 위해 임시로 주석처리한 것임 추후 제거
+        kortermnum = 1
+
+        #pos = getPos(lemma, vocnum, semnum) TODO : 데모 속도 향상을 위해 임시로 주석처리한 것임 추후 제거
+        pos = ''
+
         i['pos'] = pos
         i['kortermnum'] = kortermnum
+
+        # TODO : 데모 속도 향상을 위해 임시로 주석처리한 것임 추후 제거
+        '''
         if kortermnum is not '':
             concept = getConceptName(kortermnum)
         else:
             concept = 'null'
+        '''
+        concept = 'null'
         i['concept'] = concept
     return dt
 
