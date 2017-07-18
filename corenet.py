@@ -106,13 +106,13 @@ def getWn3ids(kortermnum):
     wn3ids = goi2wn30.loc[[nttnum],['wn3id','rel']].to_dict(orient='records')#[0]['wn3id']
     return wn3ids
 
-def getSynsets(kortermnum):
+def getSynsets(kortermnum, only_synonym=False):
     synsets = []
     wn3ids = getWn3ids(kortermnum)
     for ids in wn3ids:
         offset = ids['wn3id']
         rel = ids['rel']
-        if (rel == 'synonym'):
+        if (rel == 'synonym' or not only_synonym):
             synset = wordnet.of2ss(offset)
             synsets.append(synset)
     return synsets
@@ -160,23 +160,17 @@ def getCoreNet(arg):
         vocnum = i['vocnum']
         lemma = arg
 
-        #kortermnum = getKorterm(lemma, vocnum, semnum) TODO : 데모 속도 향상을 위해 임시로 주석처리한 것임 추후 제거
-        kortermnum = 1
+        kortermnum = getKorterm(lemma, vocnum, semnum)
 
-        #pos = getPos(lemma, vocnum, semnum) TODO : 데모 속도 향상을 위해 임시로 주석처리한 것임 추후 제거
-        pos = ''
+        pos = getPos(lemma, vocnum, semnum)
 
         i['pos'] = pos
         i['kortermnum'] = kortermnum
 
-        # TODO : 데모 속도 향상을 위해 임시로 주석처리한 것임 추후 제거
-        '''
         if kortermnum is not '':
             concept = getConceptName(kortermnum)
         else:
             concept = 'null'
-        '''
-        concept = 'null'
         i['concept'] = concept
     return dt
 
@@ -218,11 +212,11 @@ def getWnDef(lemma, vocnum, semnum):
         pass
     return wndf
 
-def getWordnet(lemma, vocnum, semnum):
+def getWordnet(lemma, vocnum, semnum, only_synonym=False):
     wordnet_list = []
     wordnet_dict = {}
     kortermnum = getKorterm(lemma, vocnum, semnum)
-    synsets = getSynsets(kortermnum)
+    synsets = getSynsets(kortermnum, only_synonym=only_synonym)
     for synset in synsets:
         wordnet_dict = {}
         lemmas = []
@@ -237,8 +231,8 @@ def getWordnet(lemma, vocnum, semnum):
 
     return wordnet_list
 
-
-
+def getSynonymSynset(lemma, vocnum, semnum):
+    return 0
 
 def getSynonym(lemma, vocnum, semnum):
     kortermnum = getKorterm(lemma, vocnum, semnum)
