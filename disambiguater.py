@@ -161,7 +161,7 @@ class DemoDisambiguater(Disambiguater):
                             is_duplicate = False
                             for j in range(i):
                                 prev_def = matching_def_list[j]
-                                if (prev_def['vocnum'] == cornet_def['vocnum'] and prev_def['semnum'] == cornet_def['semnum']):
+                                if ((prev_def['vocnum'] == cornet_def['vocnum'] and prev_def['semnum'] == cornet_def['semnum']) or prev_def['definition1'] == cornet_def['definition1']):
                                     is_duplicate = True
                                     break
                             if (is_duplicate):
