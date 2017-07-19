@@ -195,7 +195,7 @@ class DemoDisambiguater(Disambiguater):
                         if (word_def['cos_similarity'] < 0.0001):
                             break
                         try:
-                            wordnet = corenet.getWordnet(word, float(word_def['vocnum']), float(word_def['semnum']))
+                            wordnet = corenet.getWordnet(word, float(word_def['vocnum']), float(word_def['semnum']), only_synonym=True)
                         except:
                             wordnet = []
 
