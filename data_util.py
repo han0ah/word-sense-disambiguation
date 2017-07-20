@@ -2,14 +2,16 @@ import corenet
 import time
 import json
 import urllib.request
+from konlpy.tag import Hannanum, Kkma
 
 tokenize_count = 0
 token_start_time = 0
+hannanumTagger = None
 
 def get_nlp_test_result(text):
     '''
-        주어진 텍스트에 대해서 ETRI 텍스트 분석 결과를 반환한다. 
-        '''
+    주어진 텍스트에 대해서 ETRI 텍스트 분석 결과를 반환한다. 
+    '''
     etri_pos_url = 'http://143.248.135.20:22334/controller/service/etri_parser '
     data = "sentence="+text
     try:
@@ -37,6 +39,27 @@ def get_pos_tag_result(text):
         print ('error text : ' + text)
         return []
     return result
+
+def hannanum_tokenizer(text):
+    '''
+    KoNLPy의 한나눔 형태소 분석결과를 기반으로 text를 Tokenize한다.
+    '''
+    global  hannanumTagger,tokenize_count,token_start_time
+    if (hannanumTagger == None):
+        hannanumTagger = Hannanum()
+    try:
+        result = hannanumTagger.morphs(text)
+    except:
+        print ('error text : ' + text)
+        result = []
+
+    tokenize_count +=1
+    if ((tokenize_count % 2000) == 0):
+        print('%d tokenize finished %.2f second elpased' % (tokenize_count, time.time() - token_start_time))
+        token_start_time = time.time()
+
+    return result
+
 
 def etri_tokenizer(text):
     '''
