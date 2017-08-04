@@ -144,6 +144,33 @@ def get_text_length_in_byte(text):
     return len(str.encode(text))
 
 
+def get_real_corenet_matching_def_list(word):
+    matching_def_list = []
+    try:
+        matching_corenet_list = corenet.getRealCoreNet(word)
+    except:
+        return []
+
+    for corenet_item in matching_corenet_list:
+        definition1, usuage = corenet.getDefinitionAndUsuage(word, corenet_item['vocnum'], corenet_item['semnum'])
+        if (type(definition1) == float):
+            definition1 = ''
+        if (type(usuage) == float):
+            usuage = ''
+        if (type(corenet_item['kortermnum']) == float):
+            corenet_item['kortermnum'] = ''
+        item = {
+            'term' : word,
+            'vocnum' : int(corenet_item['vocnum']),
+            'semnum' : int(corenet_item['semnum']),
+            'definition1' : definition1,
+            'definition2' : '',
+            'kotermnum' : corenet_item['kortermnum'],
+            'usuage' : usuage,
+        }
+        matching_def_list.append(item)
+    return matching_def_list
+
 def get_corenet_matching_def_list(word):
     '''
     주어진 word와 일치하는 corenet 상의 표제어들의 정의 목록을 반환한다. 
@@ -154,7 +181,6 @@ def get_corenet_matching_def_list(word):
         matching_semnum_list = corenet.getSemnum(word)
     except:
         return []
-
 
     for semnum in matching_semnum_list:
         definition1 = corenet.getDefinition(word, semnum['vocnum'], semnum['semnum'])

@@ -153,6 +153,11 @@ def getWnDefinition(wn2id):
                     break
     return wndfs
 
+def getRealCoreNet(lemma):
+    data = koWord.loc[[lemma], ['vocnum', 'semnum', 'kortermnum']].to_dict(orient='records')
+    return data
+
+
 def getCoreNet(arg):
     dt = getHanwoo(arg)
     for i in dt:
@@ -206,6 +211,17 @@ def getUsage(lemma, vocnum, semnum):
             usage = i['usage']
 #            break
     return usage
+
+def getDefinitionAndUsuage(lemma, vocnum, semnum):
+    data = hanwoo.loc[[lemma], ['vocnum', 'semnum', 'definition', 'usuage']].to_dict(orient='records')
+    definition = ''
+    usuage = ''
+    for i in data:
+        if i['vocnum'] == vocnum and i['semnum'] == semnum:
+            definition = i['definition']
+            usuage = i['usuage']
+    return (definition,usuage)
+
 
 
 
