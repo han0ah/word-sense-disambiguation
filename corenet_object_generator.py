@@ -54,6 +54,8 @@ def main():
         corenet_object[word].append({
             'vocnum':vocnum,
             'semnum':semnum,
+            'definition1':definition,
+            'usuage':usuage,
             'kortermnum':kortermnum,
             'vector':vector_val
         })
