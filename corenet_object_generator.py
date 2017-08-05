@@ -24,6 +24,8 @@ def main():
 
         items = line.split('\t')
         kortermnum = items[1]
+        if (len(items[2]) < 1 or len(items[3]) < 1):
+            continue
         vocnum = int(items[2])
         semnum = int(items[3])
         word = items[8]
