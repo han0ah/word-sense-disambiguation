@@ -213,7 +213,10 @@ def getUsage(lemma, vocnum, semnum):
     return usage
 
 def getDefinitionAndUsuage(lemma, vocnum, semnum):
-    data = hanwoo.loc[[lemma], ['vocnum', 'semnum', 'definition', 'usuage']].to_dict(orient='records')
+    try:
+        data = hanwoo.loc[[lemma], ['vocnum', 'semnum', 'definition', 'usuage']].to_dict(orient='records')
+    except:
+        return ('','')
     definition = ''
     usuage = ''
     for i in data:
