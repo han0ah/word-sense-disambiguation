@@ -72,21 +72,18 @@ class BaselineDisambiguater(Disambiguater):
             return []
 
         input['word'] = self.get_word_origin_form(input)
-
+        matching_def_list = data_util.get_real_corenet_matching_def_list(input['word'])
         max_cos_similiarity =  -1 * math.inf
         max_word_def = None
-
-        if (input['word'] not in DataManager.corenet_obj):
-            return []
-        matching_def_list = DataManager.corenet_obj[input['word']]
 
         for cornet_def in matching_def_list:
             if (len(cornet_def['definition1']) < 1 and len(cornet_def['usuage']) < 1):
                 continue
             input_text = input['text']
-
-            input_vector = DataManager.tfidf_obj.transform([input_text])
-            cos_similarity = cosine_similarity(input_vector, cornet_def['vector'])[0][0]
+            corenet_def_sent = data_util.convert_def_to_sentence(cornet_def)
+            sentences = [input_text, corenet_def_sent]
+            vec = DataManager.tfidf_obj.transform(sentences)
+            cos_similarity = cosine_similarity(vec)[0][1]
 
             if ( cos_similarity > max_cos_similiarity ):
                 max_cos_similiarity, max_word_def = cos_similarity, cornet_def

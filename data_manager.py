@@ -15,7 +15,7 @@ class DataManager():
 
     @staticmethod
     def init_data():
-        DataManager.tfidf_obj = joblib.load('./data/trained_tfidf.pkl')
+        DataManager.tfidf_obj = joblib.load('./data/trained_tfidf_etri_tokenize.pkl')
         DataManager.corenet_obj = pickle.load(open('./data/corenet_obj.pickle', 'rb'))
         #DataManager.corenet_data = data_util.read_corenet_definition_data()
         DataManager.isInitialized = True

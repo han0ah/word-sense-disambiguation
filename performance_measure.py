@@ -64,7 +64,7 @@ for line in f:
 
     m_disambiguater = disambiguater.BaselineDisambiguater()
     system_output = m_disambiguater.disambiguate(input)
-    word = m_disambiguater.input['word']
+
     if (len(system_output) == 0 and result.startswith('SENSE_')):
         if (ishard == '1'):
             ok_hard_cnt += 1
