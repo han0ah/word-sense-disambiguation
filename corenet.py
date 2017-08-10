@@ -226,7 +226,7 @@ def getUsage(lemma, vocnum, semnum):
 
 def getDefinitionAndUsuage(lemma, vocnum, semnum):
     try:
-        data = hanwoo.loc[[lemma], ['vocnum', 'semnum', 'definition', 'usuage']].to_dict(orient='records')
+        data = hanwoo.loc[[lemma], ['vocnum', 'semnum', 'definition', 'usage']].to_dict(orient='records')
     except:
         return ('','')
     definition = ''
@@ -234,7 +234,7 @@ def getDefinitionAndUsuage(lemma, vocnum, semnum):
     for i in data:
         if i['vocnum'] == vocnum and i['semnum'] == semnum:
             definition = i['definition']
-            usuage = i['usuage']
+            usuage = i['usage']
     return (definition,usuage)
 
 
