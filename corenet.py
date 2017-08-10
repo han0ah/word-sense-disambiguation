@@ -37,6 +37,18 @@ def getHanwoo(arg):
     data = hanwoo.loc[[arg],['idx','vocnum','semnum','definition','usage']].to_dict(orient='records')
     return data
 
+def getKortermList(lemma, vocnum, semnum):
+    try:
+        data = koWord.loc[[lemma], ['vocnum', 'semnum', 'kortermnum']].to_dict(orient='records')
+        list = []
+        for i in data:
+            if i['vocnum'] == vocnum and i['semnum'] == semnum:
+                list.append(i['kortermnum'])
+        return list
+    except:
+        return []
+
+
 def getKorterm(lemma, vocnum, semnum):
     data = koWord.loc[[lemma],['vocnum','semnum','kortermnum']].to_dict(orient='records')
     kortermnum = ''
