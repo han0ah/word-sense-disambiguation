@@ -72,27 +72,31 @@ class BaselineDisambiguater(Disambiguater):
             return []
 
         input['word'] = self.get_word_origin_form(input)
-        matching_def_list = self.get_def_candidate_list(input['word'])
 
         max_cos_similiarity =  -1 * math.inf
         max_word_def = None
+
+        if (input['word'] not in DataManager.corenet_obj):
+            return []
+        matching_def_list = DataManager.corenet_obj[input['word']]
 
         for cornet_def in matching_def_list:
             if (len(cornet_def['definition1']) < 1 and len(cornet_def['usuage']) < 1):
                 continue
             input_text = input['text']
-            cornet_def_sent = data_util.convert_def_to_sentence(cornet_def)
-            sentences = [input_text, cornet_def_sent]
-            vec = DataManager.tfidf_obj.transform(sentences)
-            cos_similarity = cosine_similarity(vec)[0][1]
+
+            input_vector = DataManager.tfidf_obj.transform([input_text])
+            cos_similarity = cosine_similarity(input_vector, cornet_def['vector'])[0][0]
+
             if ( cos_similarity > max_cos_similiarity ):
                 max_cos_similiarity, max_word_def = cos_similarity, cornet_def
 
         if (max_word_def == None):
             return []
         return [{
-            'lemma' : max_word_def['term'],
+            'lemma' : input['word'],
             'sensid' : '(' + str(max_word_def['vocnum']) + ',' + str(max_word_def['semnum']) + ')',
+            'kortermnum' : max_word_def['kortermnum'],
             'definition' : max_word_def['definition1']
         }]
 
