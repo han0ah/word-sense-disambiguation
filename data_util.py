@@ -165,7 +165,7 @@ def get_real_corenet_matching_def_list(word):
             'semnum' : int(corenet_item['semnum']),
             'definition1' : definition1,
             'definition2' : '',
-            'kotermnum' : corenet_item['kortermnum'],
+            'kortermnum' : corenet_item['kortermnum'],
             'usuage' : usuage,
         }
         matching_def_list.append(item)
