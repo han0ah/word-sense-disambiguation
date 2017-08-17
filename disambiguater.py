@@ -97,6 +97,66 @@ class BaselineDisambiguater(Disambiguater):
             'definition' : max_word_def['definition1']
         }]
 
+class KortermDisambiguater(Disambiguater):
+    '''
+    Kortermnum Disambiguater
+    '''
+    def disambiguate(self, input):
+        if not DataManager.isInitialized:
+            return []
+
+        input['word'] = self.get_word_origin_form(input)
+        matching_def_list = data_util.get_real_corenet_matching_def_list(input['word'])
+        max_cos_similiarity =  -1 * math.inf
+        max_word_def = None
+
+        korterm_list = set()
+
+        input_vector = DataManager.tfidf_obj.transform([input['text']])
+        candidate_list = []
+        for cornet_def in matching_def_list:
+            korterm = cornet_def['kortermnum']
+            if (korterm not in DataManager.korenet_tfidf):
+                continue
+            if (type(korterm) is float or len(korterm) < 1):
+                continue
+            if (len(cornet_def['definition1']) < 1 and len(cornet_def['usuage']) < 1):
+                continue
+
+            if (max_word_def is not None and max_word_def['kortermnum'] == korterm):
+                candidate_list.append(cornet_def)
+                continue
+
+            korterm_vec = DataManager.korenet_tfidf[korterm]
+            cos_similarity = cosine_similarity(input_vector, korterm_vec)[0][0]
+
+            if ( cos_similarity > max_cos_similiarity ):
+                max_cos_similiarity, max_word_def = cos_similarity, cornet_def
+                candidate_list = []
+
+        if (max_word_def == None):
+            return []
+
+        if len(candidate_list) > 0:
+            candidate_list.append(max_word_def)
+            max_cos_similiarity = -1 * math.inf
+            max_word_def = None
+            for cornet_def in candidate_list:
+                if (len(cornet_def['definition1']) < 1 and len(cornet_def['usuage']) < 1):
+                    continue
+                corenet_def_sent = data_util.convert_def_to_sentence(cornet_def)
+                def_sent_vec = DataManager.tfidf_obj.transform([corenet_def_sent])
+                cos_similarity = cosine_similarity(input_vector, def_sent_vec)[0][0]
+                if (cos_similarity > max_cos_similiarity):
+                    max_cos_similiarity, max_word_def = cos_similarity, cornet_def
+
+        return [{
+            'lemma' : input['word'],
+            'sensid' : '(' + str(max_word_def['vocnum']) + ',' + str(max_word_def['semnum']) + ')',
+            'kortermnum' : max_word_def['kortermnum'],
+            'definition' : max_word_def['definition1']
+        }]
+
 
 class RandomDisambiguater(Disambiguater):
     def disambiguate(self, input):
@@ -104,7 +164,7 @@ class RandomDisambiguater(Disambiguater):
             return []
 
         input['word'] = self.get_word_origin_form(input)
-        matching_def_list = self.get_def_candidate_list(input['word'])
+        matching_def_list = data_util.get_real_corenet_matching_def_list(input['word'])
 
         random_value = random.randrange(0,len(matching_def_list)+1)
 
@@ -116,7 +176,8 @@ class RandomDisambiguater(Disambiguater):
         return [{
             'lemma': selected_def['term'],
             'sensid': '(' + str(selected_def['vocnum']) + ',' + str(selected_def['semnum']) + ')',
-            'definition': selected_def['definition1']
+            'definition': selected_def['definition1'],
+            'kortermnum': selected_def['kortermnum']
         }]
 
 class DemoDisambiguater(Disambiguater):
