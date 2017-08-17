@@ -92,8 +92,12 @@ def getEnConceptName(kortermnum):
 
 def getWordsInConcept(kortermnum):
     data = pandas.read_csv('./data/corenet/koWord.dat', skiprows=15, header=None, delimiter='\t',   names=['idx','kortermnum','vocnum','semnum','nttnum','pos','chinese','japanese','korean'], index_col=['kortermnum'])
-    synonym = data.loc[[kortermnum],['vocnum','semnum','pos','korean']].to_dict(orient='records')
-    return synonym
+    try:
+        synonym = data.loc[[kortermnum],['vocnum','semnum','pos','korean']].to_dict(orient='records')
+        return synonym
+    except:
+        return []
+
 
 def getWn2id(kortermnum):
     n = 0
