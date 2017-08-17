@@ -152,7 +152,9 @@ def get_real_corenet_matching_def_list(word):
         return []
 
     for corenet_item in matching_corenet_list:
-        if (type(corenet_item['semnum']) == float or type(corenet_item['vocnum']) == float):
+        #Nan check. vocnum이나 semnum이 float 중 nan이면 스킵한다
+        if (corenet_item['semnum'] != corenet_item['semnum'] or
+            corenet_item['vocnum'] != corenet_item['vocnum']):
             continue
         definition1, usuage = corenet.getDefinitionAndUsuage(word, corenet_item['vocnum'], corenet_item['semnum'])
 
