@@ -152,13 +152,17 @@ def get_real_corenet_matching_def_list(word):
         return []
 
     for corenet_item in matching_corenet_list:
+        if (type(corenet_item['semnum']) == float or type(corenet_item['vocnum']) == float):
+            continue
         definition1, usuage = corenet.getDefinitionAndUsuage(word, corenet_item['vocnum'], corenet_item['semnum'])
+
         if (type(definition1) == float):
             definition1 = ''
         if (type(usuage) == float):
             usuage = ''
         if (type(corenet_item['kortermnum']) == float):
             corenet_item['kortermnum'] = ''
+
         item = {
             'term' : word,
             'vocnum' : int(corenet_item['vocnum']),
