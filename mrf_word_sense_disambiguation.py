@@ -90,6 +90,7 @@ class MRFWordSenseDisambiguation:
 
             Y.append(Yi)
 
+        '''
         iddx = 0
         for y in Y:
             print (X[iddx]['lemma'] + " : ", end='')
@@ -97,6 +98,7 @@ class MRFWordSenseDisambiguation:
                 print (yval['kortermnum'] + ', ', end='')
             print ('\n', end='')
             iddx += 1
+        '''
 
         markov_edges = []
         for dependency in dependency_list:

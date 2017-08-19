@@ -1,5 +1,6 @@
 import disambiguater
 import data_manager
+from mrf_word_sense_disambiguation import MRFWordSenseDisambiguation
 
 f = open('test_data3','r', encoding='utf-8')
 
@@ -28,8 +29,6 @@ def extract_disambiguate_obj_from_text(input_text):
         'endIdx' : endIdx
     }
 
-data_manager.DataManager.init_data()
-
 total_hard_cnt = 0
 ok_hard_cnt = 0
 total_soft_cnt = 0
@@ -40,6 +39,9 @@ ok_hard_kortermnum = 0
 ok_soft_kortermnum = 0
 
 idx = 0
+
+mrfdisambiguater = MRFWordSenseDisambiguation()
+mrfdisambiguater.init()
 
 for line in f:
     line = line.strip()
@@ -62,8 +64,11 @@ for line in f:
     input = extract_disambiguate_obj_from_text(input_text)
     sent = input['text']
 
-    m_disambiguater = disambiguater.BaselineDisambiguater()
-    system_output = m_disambiguater.disambiguate(input)
+    m_disambiguater = mrfdisambiguater
+    if len(sent) > 150:
+        system_output = [{'sensid':'(30,30)','kortermnum':'0'}]
+    else:
+        system_output = m_disambiguater.disambiguate(input)
 
     if (len(system_output) == 0 and result.startswith('SENSE_')):
         if (ishard == '1'):
