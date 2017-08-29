@@ -20,7 +20,7 @@ def get_nlp_test_result(text):
         result = response.read().decode('utf-8')
         result = json.loads(result)
     except:
-        print('error text : ' + text)
+        #print('error text : ' + text)
         return None
     return result
 
@@ -67,7 +67,18 @@ def etri_tokenizer(text):
     '''
     global tokenize_count, token_start_time
     word_list = []
+    '''
     pos_tag_result = get_pos_tag_result(text)
+    if (pos_tag_result is None):
+        return []
+    '''
+    pos_tag_result = get_nlp_test_result(text)
+    if (pos_tag_result is None):
+        return []
+    pos_tag_result = pos_tag_result['sentence']
+    if (pos_tag_result is None):
+        return []
+
     for sent in pos_tag_result:
         morph_list = sent['morp']
         for morph in morph_list:
