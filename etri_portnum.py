@@ -1,8 +1,7 @@
-from socket import *
-
-clientSocket = None
+#clientSocket = None
 PORT_NUM = 1
 
+'''
 def init_scoket():
     global clientSocket
     global  PORT_NUM
@@ -20,3 +19,4 @@ def close_socket():
     global clientSocket
     clientSocket.close()
     clientSocket = None
+'''
