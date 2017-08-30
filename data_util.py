@@ -26,7 +26,8 @@ def get_nlp_test_result_socket(text):
         clientSocket.sendall(str.encode(text))
         data = clientSocket.recv(65536)
         clientSocket.close()
-        return data.decode(encoding='utf-8')
+        result = json.loads(data.decode(encoding='utf-8'))
+        return result
     except:
         return None
 
