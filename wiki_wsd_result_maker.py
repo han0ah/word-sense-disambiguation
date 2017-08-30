@@ -19,7 +19,7 @@ def get_corenet_num(input_vector, word):
         for korterm in list:
             korterm_list.append({'korterm':korterm, 'idx':idx})
 
-    max_cos_similiarity = -1 * math.inf
+    max_cos_similiarity = -10000.0
     max_korterm = ''
     max_idx = '0'
 
@@ -45,6 +45,11 @@ def main():
 
     file_num = '0' if len(sys.argv) < 2 else str(sys.argv[1])
     etri_portnum.PORT_NUM = 33333 if len(sys.argv) < 2 else int(sys.argv[2])
+    print (etri_portnum.PORT_NUM)
+    result = etri_portnum.init_scoket()
+    if (result == 'OK'):
+        print ('Socket Connection Fail')
+        return
 
     corenet_lemma_obj = pickle.load(open('./data/corenet_lemma_info_obj.pickle', 'rb'))
     DataManager.init_data()
@@ -78,6 +83,7 @@ def main():
             # sent_id 찾기
             text = sent['text'].strip()
             wsd_list = sent['WSD']
+
             input_vector = DataManager.tfidf_obj.transform([text])
             if (len(input_vector.data) == 0):
                 is_error = True
@@ -150,6 +156,8 @@ def main():
 
     f.close()
     f_write.close()
+
+    etri_portnum.close_socket()
 
     print ('%d sec time elpased'%(int(time.time())-sttime))
 
