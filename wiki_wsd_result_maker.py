@@ -47,7 +47,7 @@ def main():
     etri_portnum.PORT_NUM = 33333 if len(sys.argv) < 2 else int(sys.argv[2])
     print (etri_portnum.PORT_NUM)
     result = etri_portnum.init_scoket()
-    if (result == 'OK'):
+    if (result != 'OK'):
         print ('Socket Connection Fail')
         return
 
