@@ -3,10 +3,28 @@ import time
 import json
 import urllib.request
 from konlpy.tag import Hannanum, Kkma
+from socket import *
+import sys
 
 tokenize_count = 0
 token_start_time = 0
 hannanumTagger = None
+
+def get_nlp_test_result_scoket(text):
+    HOST = '143.248.135.60'
+    PORT = 12345
+    ADDR = (HOST,PORT)
+    clientSocket = socket(AF_INET, SOCK_STREAM)
+    try:
+        clientSocket.connect(ADDR)
+    except Exception as e:
+        return None
+
+    clientSocket.sendAll("박근혜는 구미에서 태어났다.")
+    data = clientSocket.recv(65536)
+    clientSocket.close()
+    return data
+
 
 def get_nlp_test_result(text):
     '''
@@ -257,3 +275,10 @@ def get_hanwoo_dic_matching_def_list(word):
         matching_def_list.append(item)
 
     return matching_def_list
+
+
+
+if __name__ == '__main__':
+    result = get_nlp_test_result_scoket("박근혜는 구미에서 태어났다.")
+    print (result)
+    debug = 1
