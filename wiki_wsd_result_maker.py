@@ -1,9 +1,12 @@
+import sys
 import pickle
 import time
 import data_util
 import math
+import etri_portnum
 from data_manager import DataManager
 from sklearn.metrics.pairwise import cosine_similarity
+
 
 def get_corenet_num(input_vector, word):
     global corenet_lemma_obj
@@ -37,18 +40,23 @@ def get_corenet_num(input_vector, word):
     return max_idx, max_cos_similiarity
 
 def main():
+    global PARSE_PORT_NUM
     global corenet_lemma_obj
+
+    file_num = '0' if len(sys.argv) < 2 else str(sys.argv[1])
+    etri_portnum.PORT_NUM = 33333 if len(sys.argv) < 2 else int(sys.argv[2])
+
     corenet_lemma_obj = pickle.load(open('./data/corenet_lemma_info_obj.pickle', 'rb'))
     DataManager.init_data()
     print ('data loaded')
 
-    wiki_input_template = "C:\SWRC_DATA\kowiki-20170701-dump{{num}}.txt"
-    wiki_output_template = "C:\SWRC_DATA\kowiki-20170701-dump-out{{num}}.txt"
+    wiki_input_template = "C:\SWRC_DATA\wiki201707\kowiki-20170701-dump-sentences{{num}}.txt"
+    wiki_output_template = "C:\SWRC_DATA\wiki201707\kowiki-20170701-dump-sentences-out{{num}}.txt"
 
     sttime = int(time.time())
 
-    input_filepath = wiki_input_template.replace("{{num}}",'0')
-    output_filepath = wiki_output_template.replace("{{num}}",'0')
+    input_filepath = wiki_input_template.replace("{{num}}",file_num)
+    output_filepath = wiki_output_template.replace("{{num}}",file_num)
 
     f = open(input_filepath, 'r', encoding='utf-8')
     f_write = open(output_filepath, 'w', encoding='utf-8')
@@ -59,8 +67,6 @@ def main():
             elapsed = int(time.time()) - sttime
             print("%d  done.  %d sec elapsed" % (index,elapsed))
             sttime = int(time.time())
-
-        #TODO : 시간 표시
 
         input_sent = line.strip()
         etri_result = data_util.get_nlp_test_result(input_sent)
@@ -73,16 +79,33 @@ def main():
             text = sent['text'].strip()
             wsd_list = sent['WSD']
             input_vector = DataManager.tfidf_obj.transform([text])
-            if (len(text) < 20):
-                break
             if (len(input_vector.data) == 0):
                 is_error = True
                 break
             new_wsd_list = []
+            entity_open_count = 0
+            prev_text = ''
             for wsd in wsd_list:
                 wsd['is_WSD'] = False
                 new_wsd_list.append(wsd)
-                if (wsd['type'] == 'NNG' or wsd['type'] == 'VA' or wsd['type'] == 'VV'):
+
+                if (wsd['text'] == '<'):
+                    if (entity_open_count == 0):
+                        entity_open_count = 1
+                    if (entity_open_count == 1):
+                        if (prev_text == '<'):
+                            entity_open_count = 2
+                        else:
+                            entity_open_count = 0
+                if (wsd['text'] == '>'):
+                    if (entity_open_count == 2):
+                        entity_open_count = 1
+                    if (entity_open_count == 1):
+                        entity_open_count = 0
+
+                prev_text = wsd['text']
+
+                if (entity_open_count  < 2 and (wsd['type'] == 'NNG' or wsd['type'] == 'VA' or wsd['type'] == 'VV')):
                     word = wsd['text'] + ('다' if (wsd['type'] != 'NNG') else '')
 
                     if (word not in corenet_lemma_obj):

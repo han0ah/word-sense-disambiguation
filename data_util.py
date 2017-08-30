@@ -3,6 +3,7 @@ import corenet
 import time
 import json
 import urllib.request
+import etri_portnum
 from konlpy.tag import Hannanum, Kkma
 from socket import *
 import sys
@@ -11,9 +12,9 @@ tokenize_count = 0
 token_start_time = 0
 hannanumTagger = None
 
-def get_nlp_test_result_scoket(text):
+def get_nlp_test_result_socket(text):
     HOST = '143.248.135.60'
-    PORT = 33333
+    PORT = etri_portnum.PORT_NUM
     ADDR = (HOST,PORT)
     clientSocket = socket(AF_INET, SOCK_STREAM)
     try:
@@ -21,10 +22,13 @@ def get_nlp_test_result_scoket(text):
     except Exception as e:
         return None
 
-    clientSocket.sendall(str.encode(text))
-    data = clientSocket.recv(65536)
-    clientSocket.close()
-    return data.decode(encoding='utf-8')
+    try:
+        clientSocket.sendall(str.encode(text))
+        data = clientSocket.recv(65536)
+        clientSocket.close()
+        return data.decode(encoding='utf-8')
+    except:
+        return None
 
 
 def get_nlp_test_result(text):
@@ -86,12 +90,8 @@ def etri_tokenizer(text):
     '''
     global tokenize_count, token_start_time
     word_list = []
-    '''
-    pos_tag_result = get_pos_tag_result(text)
-    if (pos_tag_result is None):
-        return []
-    '''
-    pos_tag_result = get_nlp_test_result(text)
+
+    pos_tag_result = get_nlp_test_result_socket(text)
     if (pos_tag_result is None):
         return []
     pos_tag_result = pos_tag_result['sentence']
@@ -280,6 +280,6 @@ def get_hanwoo_dic_matching_def_list(word):
 
 
 if __name__ == '__main__':
-    result = get_nlp_test_result_scoket("박근혜는 구미에서 태어났다.")
+    result = get_nlp_test_result_socket("박근혜는 구미에서 태어났다.")
     print (result)
     debug = 1
