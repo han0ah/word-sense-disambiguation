@@ -13,7 +13,16 @@ hannanumTagger = None
 clientSocket = None
 
 def get_nlp_test_result_socket(text):
-    clientSocket = etri_portnum.clientSocket
+    global clientSocket
+    if (clientSocket is None):
+        HOST = '143.248.135.60'
+        PORT = etri_portnum.PORT_NUM
+        ADDR = (HOST,PORT)
+        clientSocket = socket(AF_INET, SOCK_STREAM)
+        try:
+            clientSocket.connect(ADDR)
+        except Exception as e:
+            return None
     try:
         clientSocket.sendall(str.encode(text))
         data = clientSocket.recv(65536)
@@ -272,6 +281,7 @@ def get_hanwoo_dic_matching_def_list(word):
 
 
 if __name__ == '__main__':
+    etri_portnum.PORT_NUM = 33336
     result = get_nlp_test_result_socket("박근혜는 구미에서 태어났다.")
     print (result)
     debug = 1
