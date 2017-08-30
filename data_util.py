@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import corenet
 import time
 import json
@@ -12,7 +13,7 @@ hannanumTagger = None
 
 def get_nlp_test_result_scoket(text):
     HOST = '143.248.135.60'
-    PORT = 12345
+    PORT = 33333
     ADDR = (HOST,PORT)
     clientSocket = socket(AF_INET, SOCK_STREAM)
     try:
@@ -20,10 +21,10 @@ def get_nlp_test_result_scoket(text):
     except Exception as e:
         return None
 
-    clientSocket.sendAll("박근혜는 구미에서 태어났다.")
+    clientSocket.sendall(str.encode(text))
     data = clientSocket.recv(65536)
     clientSocket.close()
-    return data
+    return data.decode(encoding='utf-8')
 
 
 def get_nlp_test_result(text):
