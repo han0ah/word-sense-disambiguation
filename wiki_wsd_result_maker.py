@@ -46,14 +46,17 @@ def main():
     file_num = '0' if len(sys.argv) < 2 else str(sys.argv[1])
     etri_portnum.PORT_NUM = 33333 if len(sys.argv) < 2 else int(sys.argv[2])
     print (etri_portnum.PORT_NUM)
-    result = etri_portnum.init_scoket()
-    if (result != 'OK'):
-        print ('Socket Connection Fail')
-        return
 
     corenet_lemma_obj = pickle.load(open('./data/corenet_lemma_info_obj.pickle', 'rb'))
     DataManager.init_data()
     print ('data loaded')
+
+    '''
+    result = etri_portnum.init_scoket()
+    if (result != 'OK'):
+        print ('Socket Connection Fail')
+        return
+    '''
 
     wiki_input_template = "C:\SWRC_DATA\wiki201707\kowiki-20170701-dump-sentences{{num}}.txt"
     wiki_output_template = "C:\SWRC_DATA\wiki201707\kowiki-20170701-dump-sentences-out{{num}}.txt"
@@ -70,11 +73,11 @@ def main():
         index += 1
         if (index % 100 == 0):
             elapsed = int(time.time()) - sttime
-            print("%d  done.  %d sec elapsed" % (index,elapsed))
+            print("%d  done.  %d sec elapsed. portnum : %d, docnum : %s" % (index,elapsed,etri_portnum.PORT_NUM,file_num))
             sttime = int(time.time())
 
         input_sent = line.strip()
-        etri_result = data_util.get_nlp_test_result(input_sent)
+        etri_result = data_util.get_nlp_test_result_socket(input_sent)
         if (etri_result is None):
             continue
         sentence = etri_result['sentence']
@@ -157,7 +160,7 @@ def main():
     f.close()
     f_write.close()
 
-    etri_portnum.close_socket()
+    #etri_portnum.close_socket()
 
     print ('%d sec time elpased'%(int(time.time())-sttime))
 

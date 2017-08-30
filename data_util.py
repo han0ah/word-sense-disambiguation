@@ -6,29 +6,29 @@ import urllib.request
 import etri_portnum
 from konlpy.tag import Hannanum, Kkma
 from socket import *
-import sys
 
 tokenize_count = 0
 token_start_time = 0
 hannanumTagger = None
+clientSocket = None
 
 def get_nlp_test_result_socket(text):
-    HOST = '143.248.135.60'
-    PORT = etri_portnum.PORT_NUM
-    ADDR = (HOST,PORT)
-    clientSocket = socket(AF_INET, SOCK_STREAM)
-    try:
-        clientSocket.connect(ADDR)
-    except Exception as e:
-        return None
-
+    global clientSocket
+    if (clientSocket is None):
+        HOST = '143.248.135.60'
+        PORT = etri_portnum.PORT_NUM
+        ADDR = (HOST, PORT)
+        clientSocket = socket(AF_INET, SOCK_STREAM)
+        try:
+            clientSocket.connect(ADDR)
+        except Exception as e:
+            return None
     try:
         clientSocket.sendall(str.encode(text))
         data = clientSocket.recv(65536)
-        clientSocket.close()
         result = json.loads(data.decode(encoding='utf-8'))
         return result
-    except:
+    except Exception as e:
         return None
 
 
