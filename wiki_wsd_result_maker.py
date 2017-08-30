@@ -51,12 +51,12 @@ def main():
     DataManager.init_data()
     print ('data loaded')
 
-    '''
+
     result = etri_portnum.init_scoket()
     if (result != 'OK'):
         print ('Socket Connection Fail')
         return
-    '''
+
 
     wiki_input_template = "C:\SWRC_DATA\wiki201707\kowiki-20170701-dump-sentences{{num}}.txt"
     wiki_output_template = "C:\SWRC_DATA\wiki201707\kowiki-20170701-dump-sentences-out{{num}}.txt"
@@ -160,7 +160,7 @@ def main():
     f.close()
     f_write.close()
 
-    #etri_portnum.close_socket()
+    etri_portnum.close_socket()
 
     print ('%d sec time elpased'%(int(time.time())-sttime))
 
