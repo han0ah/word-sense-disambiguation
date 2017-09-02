@@ -81,6 +81,7 @@ def main():
 
         etri_result = data_util.get_nlp_test_result_socket(input_sent)
         if (etri_result is None):
+            f_write.write(line.strip() + '\n')
             continue
         sentence = etri_result['sentence']
         for sent in sentence:
@@ -91,8 +92,8 @@ def main():
 
             input_vector = DataManager.tfidf_obj.transform([text])
             if (len(input_vector.data) == 0):
-                is_error = True
-                break
+                f_write.write(line.strip() + '\n')
+                continue
             new_wsd_list = []
             entity_open_count = 0
             prev_text = ''
