@@ -84,6 +84,9 @@ def main():
             f_write.write(line.strip() + '\n')
             continue
         sentence = etri_result['sentence']
+        if (len(sentence) != 1):
+            f_write.write(line.strip() + '\n')
+            continue
         for sent in sentence:
             match_korterm_list = []
             # sent_id 찾기
@@ -93,7 +96,7 @@ def main():
             input_vector = DataManager.tfidf_obj.transform([text])
             if (len(input_vector.data) == 0):
                 f_write.write(line.strip() + '\n')
-                continue
+                break
             new_wsd_list = []
             entity_open_count = 0
             prev_text = ''
