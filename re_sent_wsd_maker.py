@@ -74,8 +74,8 @@ def main():
         items = line.strip().split('\t')
 
         if (len(items) == 4):
-            items[-1] = items[-1].replace('<< _sbj_ >>', '<< ' + items[0] + ' >>')
-            items[-1] = items[-1].replace('<< _obj_ >>', '<< ' + items[1] + ' >>')
+            items[-1] = items[-1].replace('<< _sbj_ >>', '<< ' + items[0] + '_s >>')
+            items[-1] = items[-1].replace('<< _obj_ >>', '<< ' + items[1] + '_o >>')
 
         input_sent = items[-1].strip()
 
@@ -164,8 +164,8 @@ def main():
 
             items[-1] = new_sent
             if (len(items) == 4):
-                items[-1] = items[-1].replace('<< ' + items[0] + ' >>', '<< _sbj_ >>')
-                items[-1] = items[-1].replace('<< ' + items[1] + ' >>', '<< _obj_ >>')
+                items[-1] = items[-1].replace('<< ' + items[0] + '_s >>', '<< _sbj_ >>')
+                items[-1] = items[-1].replace('<< ' + items[1] + '_o >>', '<< _obj_ >>')
 
             for i in range(len(items)):
                 f_write.write(items[i])
