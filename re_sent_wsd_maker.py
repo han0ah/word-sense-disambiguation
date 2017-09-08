@@ -47,7 +47,7 @@ def main():
     etri_portnum.PORT_NUM = 33333 if len(sys.argv) < 2 else int(sys.argv[2])
     print (etri_portnum.PORT_NUM)
 
-    corenet_lemma_obj = pickle.load(open('./data/corenet_lemma_info_obj.pickle', 'rb'))
+    corenet_lemma_obj = pickle.load(open('./data/corenet_lemma_info_obj_new.pickle', 'rb'))
     DataManager.init_data()
     print ('data loaded')
 
@@ -132,7 +132,7 @@ def main():
                     wsd_result, confidence = get_corenet_num(input_vector, word)
                     if (len(wsd_result) < 1):
                         continue
-                    if (confidence >= 0.15 or len(corenet_list) == 1):
+                    if (confidence >= 0.14 or len(corenet_list) == 1):
                         word = word + '-@-' + str(wsd_result)
                         new_wsd_list[-1]['text'] = word
                         new_wsd_list[-1]['is_WSD'] = True
