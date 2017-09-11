@@ -1,16 +1,18 @@
 import pickle
 import data_util
+import math
 from pgmpy.models import MarkovModel
 from pgmpy.factors import Factor
-from pgmpy.inference import BeliefPropagation, VariableElimination
-
+from pgmpy.inference import BeliefPropagation, VariableElimination, Mplp
 
 class MRFWordSenseDisambiguation:
     corenet_lemma_obj = None
     korterm_shortest_path = None
+    korterm_cooccur_freq = None
 
     def init(self):
-        self.corenet_lemma_obj = pickle.load(open('./data/corenet_lemma_info_obj_with_freq.pickle', 'rb'))
+        self.corenet_lemma_obj = pickle.load(open('./data/corenet_lemma_info_obj_with_freq_014_final.pickle', 'rb'))
+        self.korterm_cooccur_freq = pickle.load(open('./data/korterm_cooccur_freq_014_final.pickle', 'rb'))
         self.korterm_shortest_path = pickle.load(open('./data/korterm_shortest_path.pickle', 'rb'))
 
 
@@ -44,7 +46,7 @@ class MRFWordSenseDisambiguation:
 
         return word, begin_idx
 
-    def disambiguate(self, input):
+    def disambiguate(self, input, mode="ONE_WORD"):
         text = input['text']
 
 
@@ -59,7 +61,9 @@ class MRFWordSenseDisambiguation:
         wsd_list = etri_parser_result['WSD']
         phrase_list = etri_parser_result['word']
         dependency_list = etri_parser_result['dependency']
+        iii = 0
         for wsd in wsd_list:
+            iii += 1
             if (wsd['type'] == 'NNG' or wsd['type'] == 'VA' or wsd['type'] == 'VV'):
                 t_word = wsd['text'] + ('다' if (wsd['type'] != 'NNG') else '')
             else:
@@ -77,6 +81,8 @@ class MRFWordSenseDisambiguation:
                 if wsd['begin'] == input_beginIdx:
                     new_obj['is_target'] = True
                 X.append(new_obj)
+                etri_parser_result['WSD'][iii-1]['wsd_index'] = len(X)-1
+
 
         # 각 X값 별로 Y값 구성
         Y = []
@@ -84,7 +90,6 @@ class MRFWordSenseDisambiguation:
             Yi = []
             y_list = self.corenet_lemma_obj[x['lemma']]
             for y_val in y_list:
-#                korterm = list(y_val['korterm_set'])[0]
                 for korterm in y_val['korterm_set']:
                    Yi.append({'kortermnum':korterm, 'frequency':y_val['frequency']})
 
@@ -120,45 +125,73 @@ class MRFWordSenseDisambiguation:
 
         for i in range(len(X)):
             values = []
+            total = 0.0
             for yval in Y[i]:
-                values.append((yval['frequency']+1)*0.0001)
+                val = math.log((yval['frequency']+2.7183))
+                values.append(val)
+                total += val
+            values = [v / total for v in values]
             node_factor = Factor([str(i)], cardinality=[len(Y[i])], values=values)
             model.add_factors(node_factor)
 
         for edge in markov_edges:
             values = []
+            total = 0.0
             for yval1 in Y[int(edge[0])]:
                 for yval2 in Y[int(edge[1])]:
+                    korterm1 = yval1['kortermnum']
+                    korterm2 = yval2['kortermnum']
+                    val = math.log(self.korterm_cooccur_freq[korterm1][korterm2]+2.7183)
+                    total += val
+                    values.append(val)
+
+                    # Shortest Path 이용하는 방식
+                    '''
                     if (yval1['kortermnum'] == yval2['kortermnum']):
                         shortest_path = 1
                     else:
                         shortest_path = self.korterm_shortest_path[yval1['kortermnum']][yval2['kortermnum']] + 1
-
+                    
                     values.append(1/shortest_path)
+                    total += (1/shortest_path)
+                    '''
+
+            values = [v/total for v in values]
             edge_factor = Factor([edge[0],edge[1]], cardinality=[len(Y[int(edge[0])]),len(Y[int(edge[1])])], values=values)
             model.add_factors(edge_factor)
 
-        inferrer = VariableElimination(model)
-        result = inferrer.map_query()
-        print(result)
+        inferrer = Mplp(model)
+        inferrer.map_query()
+        result = {}
+        for key in inferrer.best_assignment.keys():
+            refined_key = str(key).replace("frozenset({'",'').replace("'})",'')
+            result[refined_key] = inferrer.best_assignment[key]
 
-        result_korterm = ""
-        for i in range(len(X)):
-            #TODO input idx 고려
-            if str(i) in result:
-                if 'is_target' in X[i]:
-                    result_korterm = Y[i][result[str(i)]]['kortermnum']
-                    break
 
-        return [{'sensid':'(20,20)', 'kortermnum':result_korterm}]
+
+        if (mode == 'ONE_WORD'):
+            result_korterm = ""
+            for i in range(len(X)):
+                #TODO input idx 고려
+                if str(i) in result:
+                    if 'is_target' in X[i]:
+                        result_korterm = Y[i][result[str(i)]]['kortermnum']
+                        break
+
+            return [{'sensid':'(20,20)', 'kortermnum':result_korterm}]
+        else:
+            for i in range(len(X)):
+                result_korterm =  Y[i][result[str(i)]]['kortermnum']
+                result[str(i)] = result_korterm
+            return result,etri_parser_result
 
 
 if __name__ == '__main__':
     input = {
-        'text' : '나는 어제 배를 먹었다.',
-        'word' : '먹었',
-        'beginIdx' : 9,
-        'endIdx' : 10
+        'text' : '봄의 이름인 금강을 포함해 여러 가지 이름이 있지만 현재는 대개 금강산이라 [불리며], 계절에 따라 여름에는 봉래산(蓬萊山 ), 가을에는 풍악산(楓嶽山 , 楓岳山 ), 겨울에는 개골산(皆骨山 )으로 불렸다.',
+        'word' : '불리다',
+        'beginIdx' : 42,
+        'endIdx' : 44
     }
 
     disambiguater = MRFWordSenseDisambiguation()
