@@ -92,7 +92,7 @@ def etri_tokenizer(text):
     global tokenize_count, token_start_time
     word_list = []
 
-    pos_tag_result = get_nlp_test_result_socket(text)
+    pos_tag_result = get_nlp_test_result(text)
     if (pos_tag_result is None):
         return []
     pos_tag_result = pos_tag_result['sentence']

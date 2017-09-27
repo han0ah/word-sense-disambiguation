@@ -110,21 +110,17 @@ class KortermDisambiguater(Disambiguater):
         max_cos_similiarity =  -1 * math.inf
         max_word_def = None
 
-        korterm_list = set()
+        vocnum_list = set()
 
         input_vector = DataManager.tfidf_obj.transform([input['text']])
-        candidate_list = []
         for cornet_def in matching_def_list:
+            vocnum_list.add(cornet_def['vocnum'])
             korterm = cornet_def['kortermnum']
             if (korterm not in DataManager.korenet_tfidf):
                 continue
             if (type(korterm) is float or len(korterm) < 1):
                 continue
-            if (len(cornet_def['definition1']) < 1 and len(cornet_def['usuage']) < 1):
-                continue
-
             if (max_word_def is not None and max_word_def['kortermnum'] == korterm):
-                candidate_list.append(cornet_def)
                 continue
 
             korterm_vec = DataManager.korenet_tfidf[korterm]
@@ -132,29 +128,17 @@ class KortermDisambiguater(Disambiguater):
 
             if ( cos_similarity > max_cos_similiarity ):
                 max_cos_similiarity, max_word_def = cos_similarity, cornet_def
-                candidate_list = []
 
         if (max_word_def == None):
             return []
-
-        if len(candidate_list) > 0:
-            candidate_list.append(max_word_def)
-            max_cos_similiarity = -1 * math.inf
-            max_word_def = None
-            for cornet_def in candidate_list:
-                if (len(cornet_def['definition1']) < 1 and len(cornet_def['usuage']) < 1):
-                    continue
-                corenet_def_sent = data_util.convert_def_to_sentence(cornet_def)
-                def_sent_vec = DataManager.tfidf_obj.transform([corenet_def_sent])
-                cos_similarity = cosine_similarity(input_vector, def_sent_vec)[0][0]
-                if (cos_similarity > max_cos_similiarity):
-                    max_cos_similiarity, max_word_def = cos_similarity, cornet_def
 
         return [{
             'lemma' : input['word'],
             'sensid' : '(' + str(max_word_def['vocnum']) + ',' + str(max_word_def['semnum']) + ')',
             'kortermnum' : max_word_def['kortermnum'],
-            'definition' : max_word_def['definition1']
+            'definition' : max_word_def['definition1'],
+            'confidence' : max_cos_similiarity,
+            'candidate_num' : len(vocnum_list)
         }]
 
 
@@ -165,11 +149,15 @@ class RandomDisambiguater(Disambiguater):
 
         input['word'] = self.get_word_origin_form(input)
         matching_def_list = data_util.get_real_corenet_matching_def_list(input['word'])
+        vocnum_set = set()
+        for corenet_def in matching_def_list:
+            vocnum_set.add(corenet_def['vocnum'])
 
-        random_value = random.randrange(0,len(matching_def_list)+1)
-
-        if (random_value == len(matching_def_list)):
+        if (len(matching_def_list) < 1):
             return []
+
+
+        random_value = random.randrange(0,len(matching_def_list))
 
         selected_def = matching_def_list[random_value]
 
@@ -177,8 +165,35 @@ class RandomDisambiguater(Disambiguater):
             'lemma': selected_def['term'],
             'sensid': '(' + str(selected_def['vocnum']) + ',' + str(selected_def['semnum']) + ')',
             'definition': selected_def['definition1'],
-            'kortermnum': selected_def['kortermnum']
+            'kortermnum': selected_def['kortermnum'],
+            'candidate_num' : len(vocnum_set)
         }]
+
+class HighFreqDisambiguater(Disambiguater):
+    def disambiguate(self, input, corenet_lemma_obj):
+        if not DataManager.isInitialized:
+            return []
+
+        input['word'] = self.get_word_origin_form(input)
+        if (input['word'] not in corenet_lemma_obj):
+            return []
+
+        max_freq = -1
+        max_candidate = None
+        for candidate in corenet_lemma_obj[input['word']]:
+            if (candidate['frequency'] > max_freq):
+                max_freq = candidate['frequency']
+                max_candidate = candidate
+
+
+        return [{
+            'lemma': input['word'],
+            'sensid': '()',
+            'definition': '',
+            'kortermnum': list(max_candidate['korterm_set'])[0],
+            'num_candidates': len(corenet_lemma_obj[input['word']])
+        }]
+
 
 class DemoDisambiguater(Disambiguater):
     '''
@@ -290,13 +305,126 @@ class DemoDisambiguater(Disambiguater):
         print ('time_elapsed %d'%(int(round(time.time()*1000)) - ttime))
         return {'wsd_result' : final_output_ary}
 
+class RESentenceDisambiguater(Disambiguater):
 
+    def get_corenet_num(self, input_vector, word):
+        korterm_list = []
+        ttt = DataManager.corenet_obj[word]
+        for idx in range(len(ttt)):
+            item = ttt[idx]
+            list = item['korterm_set']
+            for korterm in list:
+                korterm_list.append({'korterm': korterm, 'idx': idx})
+
+        max_cos_similiarity = -10000.0
+        max_korterm = ''
+        max_idx = '0'
+
+        for korterm_item in korterm_list:
+            korterm = korterm_item['korterm']
+            index = korterm_item['idx']
+            if (korterm not in DataManager.korenet_tfidf):
+                continue
+            if (max_korterm == korterm):
+                continue
+
+            korterm_vec = DataManager.korenet_tfidf[korterm]
+            cos_similarity = cosine_similarity(input_vector, korterm_vec)[0][0]
+
+            if (cos_similarity > max_cos_similiarity):
+                max_cos_similiarity, max_korterm, max_idx = cos_similarity, korterm, str(index)
+
+        return max_idx, max_cos_similiarity
+
+    def disambiguate(self, input):
+        text = input['text'].strip()
+        threshold = input['threshold'] if 'threshold' in input else 0.14
+        etri_result = data_util.get_nlp_test_result(text)
+        if (etri_result is None):
+            return {'result':''}
+        sent = etri_result['sentence'][0]
+
+        match_korterm_list = []
+        # sent_id 찾기
+        text = sent['text'].strip()
+        wsd_list = sent['WSD']
+
+        input_vector = DataManager.tfidf_obj.transform([text])
+        if (len(input_vector.data) == 0):
+            return {'result':''}
+
+        new_wsd_list = []
+        entity_open_count = 0
+        prev_text = ''
+        for wsd in wsd_list:
+            wsd['is_WSD'] = False
+            new_wsd_list.append(wsd)
+
+            if (wsd['text'] == '<'):
+                if (entity_open_count == 0):
+                    entity_open_count = 1
+                if (entity_open_count == 1):
+                    if (prev_text == '<'):
+                        entity_open_count = 2
+                    else:
+                        entity_open_count = 0
+            if (wsd['text'] == '>'):
+                if (entity_open_count == 2):
+                    entity_open_count = 1
+                if (entity_open_count == 1):
+                    entity_open_count = 0
+
+            prev_text = wsd['text']
+
+            if (entity_open_count  < 2 and (wsd['type'] == 'NNG' or wsd['type'] == 'VA' or wsd['type'] == 'VV')):
+                word = wsd['text'] + ('다' if (wsd['type'] != 'NNG') else '')
+
+                if (word not in DataManager.corenet_obj):
+                    continue
+                corenet_list = DataManager.corenet_obj[word]
+                if (len(corenet_list) < 1):
+                    continue
+
+                wsd_result, confidence = self.get_corenet_num(input_vector, word)
+                if (len(wsd_result) < 1):
+                    continue
+                if (confidence >= 0.14 or len(corenet_list) == 1):
+                    word = word + '-@-' + str(wsd_result)
+                    new_wsd_list[-1]['text'] = word
+                    new_wsd_list[-1]['is_WSD'] = True
+
+        new_sent = ""
+        word_list = sent['word']
+        wsd_idx = 0
+        wsd_len = len(new_wsd_list)
+        for word_idx in range(len(word_list)):
+            word = word_list[word_idx]
+            new_word = ''
+            iscontain_wsd = False
+            while wsd_idx < wsd_len:
+                if (wsd_list[wsd_idx]['begin'] >= word['begin'] and wsd_list[wsd_idx]['end'] <= word['end']):
+                    if(wsd_list[wsd_idx]['is_WSD']):
+                        iscontain_wsd = True
+                        if (len(new_word) > 0):
+                            new_word += ' '
+                    new_word += wsd_list[wsd_idx]['text']
+                else:
+                    break
+                wsd_idx += 1
+            if (iscontain_wsd):
+                new_sent += new_word
+            else:
+                new_sent += word['text']
+            if (word_idx < len(word_list)-1):
+                new_sent += ' '
+
+        return {'result':new_sent}
 
 if __name__ == "__main__":
     DataManager.init_data()
-    m_disambiguater = DemoDisambiguater()
+    m_disambiguater = RESentenceDisambiguater()
+
     result = m_disambiguater.disambiguate({
-        #'text' : '애플은 스티브 잡스와 스티브 워즈니악과 론 웨인이 1976년에 설립한 컴퓨터 회사이다. 이전 명칭은 애플 컴퓨터였다. 최초의 개인용 컴퓨터 중 하나이며, 최초로 키보드와 모니터를 가지고 있는 애플 I을 출시하였고, 애플 II는 공전의 히트작이 되어 개인용 컴퓨터의 시대를 열었다.'
-        'text' : '내부자들은 대한민국 범죄드라마 영화이다. 이병헌, 조승우, 백윤식 대체불가의 주연! 그리고 탄탄한 연기파 조연들의 조합! 명불허전 대한민국 최고의 연기를 선사할 배우들 총 출동!'
+        'text' : '조원동은  << 국도_제1호선 >> 과  << 광교산 >>  삼림욕장 사이에 위치한 기존 단독주택과 아파트가 공존하는 주거 밀집 지역이다.',
+        'threshold' : 0.14
     })
-    print(result)
