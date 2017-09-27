@@ -337,6 +337,8 @@ class RESentenceDisambiguater(Disambiguater):
         return max_idx, max_cos_similiarity
 
     def disambiguate(self, input):
+        if ('text' not in input):
+            return {'error':'Wrong JSON Format'}
         text = input['text'].strip()
         threshold = input['threshold'] if 'threshold' in input else 0.14
         etri_result = data_util.get_nlp_test_result(text)
