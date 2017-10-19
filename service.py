@@ -69,6 +69,13 @@ def disambiguate_re():
 
 DataManager.init_data()
 print(' data load finished ... ')
-run(host='localhost', port=23000)
+
+with open('config.json', encoding='utf-8') as config_file:
+    config = json.loads(config_file.read())
+
+host_url = config['host_url'] if 'host_url' in config else 'localhost'
+port_num = config['port'] if 'host_url' in config else 8888
+
+run(host=host_url, port=port_num)
 
 
