@@ -1,9 +1,7 @@
-import corenet
 import math
 import data_util
-import random
-import operator
-import time
+import json
+import nlp_result_delegate
 from data_manager import DataManager
 from sklearn.metrics.pairwise import cosine_similarity
 
@@ -141,172 +139,7 @@ class KortermDisambiguater(Disambiguater):
             'candidate_num' : len(vocnum_list)
         }]
 
-
-class RandomDisambiguater(Disambiguater):
-    def disambiguate(self, input):
-        if not DataManager.isInitialized:
-            return []
-
-        input['word'] = self.get_word_origin_form(input)
-        matching_def_list = data_util.get_real_corenet_matching_def_list(input['word'])
-        vocnum_set = set()
-        for corenet_def in matching_def_list:
-            vocnum_set.add(corenet_def['vocnum'])
-
-        if (len(matching_def_list) < 1):
-            return []
-
-
-        random_value = random.randrange(0,len(matching_def_list))
-
-        selected_def = matching_def_list[random_value]
-
-        return [{
-            'lemma': selected_def['term'],
-            'sensid': '(' + str(selected_def['vocnum']) + ',' + str(selected_def['semnum']) + ')',
-            'definition': selected_def['definition1'],
-            'kortermnum': selected_def['kortermnum'],
-            'candidate_num' : len(vocnum_set)
-        }]
-
-class HighFreqDisambiguater(Disambiguater):
-    def disambiguate(self, input, corenet_lemma_obj):
-        if not DataManager.isInitialized:
-            return []
-
-        input['word'] = self.get_word_origin_form(input)
-        if (input['word'] not in corenet_lemma_obj):
-            return []
-
-        max_freq = -1
-        max_candidate = None
-        for candidate in corenet_lemma_obj[input['word']]:
-            if (candidate['frequency'] > max_freq):
-                max_freq = candidate['frequency']
-                max_candidate = candidate
-
-
-        return [{
-            'lemma': input['word'],
-            'sensid': '()',
-            'definition': '',
-            'kortermnum': list(max_candidate['korterm_set'])[0],
-            'num_candidates': len(corenet_lemma_obj[input['word']])
-        }]
-
-
-class DemoDisambiguater(Disambiguater):
-    '''
-    데모용 Disambiguater. 문장 하나만 입력으로 받고 문장 내의 모든 일반 명사에 대해서 WSD를 한다.
-    '''
-    def disambiguate(self, input):
-        get_def_list_time = 0
-        tfidf_time = 0
-        get_wordnet_time = 0
-        ttime = int(round(time.time() * 1000))
-        if not DataManager.isInitialized:
-            return []
-
-        text = input['text']
-        nlp_result = data_util.get_nlp_test_result(text)
-        if (nlp_result == None):
-            return {'wsd_result':[]}
-
-        nlp_result = nlp_result['sentence']
-        input_vector = DataManager.tfidf_obj.transform([text])
-        final_output_ary = []
-        for sent_nlp_result in nlp_result:
-            morp_list = sent_nlp_result['WSD']
-            output_ary = []
-            for morp in morp_list:
-                word = morp['text']
-                if (morp['type'] == 'NNG'):
-
-                    st_time = int(time.time()*1000)
-                    matching_def_list = data_util.get_hanwoo_dic_matching_def_list(word)
-                    get_def_list_time += (int(time.time()*1000) - st_time)
-                    if (len(matching_def_list) < 1):
-                        continue
-
-                    st_time = int(time.time() * 1000)
-                    for i in range(len(matching_def_list)):
-                        cornet_def = matching_def_list[i]
-                        if (len(cornet_def['definition1']) < 1):
-                            cornet_def['cos_similarity'] = 0.0
-                            continue
-                        if (i > 0):
-                            is_duplicate = False
-                            for j in range(i):
-                                prev_def = matching_def_list[j]
-                                if ((prev_def['vocnum'] == cornet_def['vocnum'] and prev_def['semnum'] == cornet_def['semnum']) or prev_def['definition1'] == cornet_def['definition1']):
-                                    is_duplicate = True
-                                    break
-                            if (is_duplicate):
-                                cornet_def['cos_similarity'] = 0.0
-                                continue
-
-                        cornet_def_sent = data_util.convert_def_to_sentence(cornet_def)
-                        sentences = [cornet_def_sent]
-                        def_sent_vector = DataManager.tfidf_obj.transform(sentences)
-                        cos_similarity = cosine_similarity(input_vector, def_sent_vector)[0][0]
-                        cornet_def['cos_similarity'] = cos_similarity
-                    tfidf_time += (int(time.time() * 1000) - st_time)
-
-                    # beginIdx 구하기
-                    chr_cnt = 0
-                    position_cnt = 0
-                    beginIdx = 0
-                    for chr in text:
-                        if (position_cnt == morp['position']):
-                            beginIdx = chr_cnt
-                            break
-                        chr_cnt += 1
-                        position_cnt += data_util.get_text_length_in_byte(chr)
-                    endIdx = beginIdx + len(morp['text']) - 1
-
-                    matching_def_list = sorted(matching_def_list, key=operator.itemgetter('cos_similarity'), reverse=True)
-                    one_word_ary = []
-                    st_time = int(time.time() * 1000)
-                    for i in range(len(matching_def_list)):
-                        word_def = matching_def_list[i]
-                        if (word_def['cos_similarity'] < 0.0001):
-                            break
-                        try:
-                            wordnet = corenet.getWordnet(word, float(word_def['vocnum']), float(word_def['semnum']), only_synonym=True)
-                        except:
-                            wordnet = []
-
-                        en_synset = wordnet[0]['synset']._name if len(wordnet) > 0 else ''
-                        en_lemmas = wordnet[0]['lemmas'] if len(wordnet) > 0 else []
-                        en_definition = wordnet[0]['definition'] if len(wordnet) > 0 else ''
-
-                        one_word_ary.append({
-                            'lemma' : word_def['term'],
-                            'senseid' : '(' + str(word_def['vocnum']) + ',' + str(word_def['semnum']) + ')',
-                            'definition' : word_def['definition1'],
-                            'usuage' : word_def['usuage'],
-                            'beginIdx' : beginIdx,
-                            'endIdx' : endIdx,
-                            'score' : word_def['cos_similarity'],
-                            'en_synset': en_synset,
-                            'en_lemmas' : en_lemmas,
-                            'en_definition' : en_definition,
-                        })
-                    elapsed = (int(time.time() * 1000) - st_time)
-                    print ('--------------wordnet : %d'%(elapsed))
-                    get_wordnet_time += elapsed
-                    if (len(one_word_ary) > 0):
-                        output_ary.append(one_word_ary)
-            if (len(output_ary) > 0):
-                final_output_ary.append(output_ary)
-        print ('get_def_list_time %d'%get_def_list_time)
-        print('tfidf_time %d' % tfidf_time)
-        print('wordnet_time %d' % get_wordnet_time)
-        print ('time_elapsed %d'%(int(round(time.time()*1000)) - ttime))
-        return {'wsd_result' : final_output_ary}
-
 class RESentenceDisambiguater(Disambiguater):
-
     def get_corenet_num(self, input_vector, word):
         korterm_list = []
         ttt = DataManager.corenet_obj[word]
@@ -341,10 +174,11 @@ class RESentenceDisambiguater(Disambiguater):
             return {'error':'Wrong JSON Format'}
         text = input['text'].strip()
         threshold = input['threshold'] if 'threshold' in input else 0.14
-        etri_result = data_util.get_nlp_test_result(text)
+        etri_result = json.loads(input['etri_result']) if 'etri_result' in input else data_util.get_nlp_test_result(text)
         if (etri_result is None):
             return {'result':''}
         sent = etri_result['sentence'][0]
+        nlp_result_delegate.push_parse_result(sent)
 
         match_korterm_list = []
         # sent_id 찾기
@@ -390,7 +224,7 @@ class RESentenceDisambiguater(Disambiguater):
                 wsd_result, confidence = self.get_corenet_num(input_vector, word)
                 if (len(wsd_result) < 1):
                     continue
-                if (confidence >= 0.14 or len(corenet_list) == 1):
+                if (confidence >= threshold or len(corenet_list) == 1):
                     word = word + '-@-' + str(wsd_result)
                     new_wsd_list[-1]['text'] = word
                     new_wsd_list[-1]['is_WSD'] = True
@@ -427,6 +261,7 @@ if __name__ == "__main__":
     m_disambiguater = RESentenceDisambiguater()
 
     result = m_disambiguater.disambiguate({
-        'text' : '조원동은  << 국도_제1호선 >> 과  << 광교산 >>  삼림욕장 사이에 위치한 기존 단독주택과 아파트가 공존하는 주거 밀집 지역이다.',
-        'threshold' : 0.14
+        'text' : '사과는 맛있다.',
+        'threshold' : 0.14,
+        'etri_result' : '{"sentence":[{"id" : 0,"reserve_str" : "","text" : "사과는 맛있다.","morp" : [{"id" : 0, "lemma" : "사과", "type" : "NNG", "position" : 0, "weight" : 0.437589 },{"id" : 1, "lemma" : "는", "type" : "JX", "position" : 6, "weight" : 0.0287565 },{"id" : 2, "lemma" : "맛있", "type" : "VA", "position" : 10, "weight" : 0.9 },{"id" : 3, "lemma" : "다", "type" : "EF", "position" : 16, "weight" : 0.132573 },{"id" : 4, "lemma" : ".", "type" : "SF", "position" : 19, "weight" : 1 }],"WSD" : [{"id" : 0, "text" : "사과", "type" : "NNG", "scode" : "05", "weight" : 2.2, "position" : 0, "begin" : 0, "end" : 0},{"id" : 1, "text" : "는", "type" : "JX", "scode" : "00", "weight" : 1, "position" : 6, "begin" : 1, "end" : 1},{"id" : 2, "text" : "맛있", "type" : "VA", "scode" : "00", "weight" : 0, "position" : 10, "begin" : 2, "end" : 2},{"id" : 3, "text" : "다", "type" : "EF", "scode" : "00", "weight" : 1, "position" : 16, "begin" : 3, "end" : 3},{"id" : 4, "text" : ".", "type" : "SF", "scode" : "00", "weight" : 1, "position" : 19, "begin" : 4, "end" : 4}],"word" : [{"id" : 0, "text" : "사과는", "type" : "", "begin" : 0, "end" : 1},{"id" : 1, "text" : "맛있다.", "type" : "", "begin" : 2, "end" : 4}]}]}'
     })

@@ -3,34 +3,7 @@ import corenet
 import time
 import json
 import urllib.request
-import etri_portnum
-from konlpy.tag import Hannanum, Kkma
-from socket import *
-
-tokenize_count = 0
-token_start_time = 0
-hannanumTagger = None
-clientSocket = None
-
-def get_nlp_test_result_socket(text):
-    global clientSocket
-    if (clientSocket is None):
-        HOST = '143.248.135.60'
-        PORT = etri_portnum.PORT_NUM
-        ADDR = (HOST,PORT)
-        clientSocket = socket(AF_INET, SOCK_STREAM)
-        try:
-            clientSocket.connect(ADDR)
-        except Exception as e:
-            return None
-    try:
-        clientSocket.sendall(str.encode(text))
-        data = clientSocket.recv(65536)
-        result = json.loads(data.decode(encoding='utf-8'))
-        return result
-    except Exception as e:
-        return None
-
+import nlp_result_delegate
 
 def get_nlp_test_result(text):
     '''
@@ -64,52 +37,26 @@ def get_pos_tag_result(text):
         return []
     return result
 
-def hannanum_tokenizer(text):
-    '''
-    KoNLPy의 한나눔 형태소 분석결과를 기반으로 text를 Tokenize한다.
-    '''
-    global  hannanumTagger,tokenize_count,token_start_time
-    if (hannanumTagger == None):
-        hannanumTagger = Hannanum()
-    try:
-        result = hannanumTagger.morphs(text)
-    except:
-        print ('error text : ' + text)
-        result = []
-
-    tokenize_count +=1
-    if ((tokenize_count % 2000) == 0):
-        print('%d tokenize finished %.2f second elpased' % (tokenize_count, time.time() - token_start_time))
-        token_start_time = time.time()
-
-    return result
-
-
 def etri_tokenizer(text):
     '''
     ETRI 형태소 분석 결과를 기반으로 text를 Tokenize한다.
     '''
-    global tokenize_count, token_start_time
     word_list = []
 
-    pos_tag_result = get_nlp_test_result(text)
-    if (pos_tag_result is None):
-        return []
-    pos_tag_result = pos_tag_result['sentence']
-    if (pos_tag_result is None):
-        return []
+    if text in nlp_result_delegate.nlp_tokenize_dict:
+        parse_result = nlp_result_delegate.nlp_tokenize_dict[text]['parse_result']
+    else:
+        parse_result = get_nlp_test_result(text)
+        if (parse_result is None):
+            return []
+        parse_result = parse_result['sentence'][0]
 
-    for sent in pos_tag_result:
-        morph_list = sent['morp']
-        for morph in morph_list:
-            if (morph['type'][0] == 'S'): # 부호는 무시
-                continue
-            word_list.append(morph['lemma'])
 
-    tokenize_count += 1
-    if ((tokenize_count % 1000) == 0 ):
-        print('%d tokenize finished %.2f second elpased'%(tokenize_count, time.time()-token_start_time))
-        token_start_time = time.time()
+    morph_list = parse_result['morp']
+    for morph in morph_list:
+        if (morph['type'][0] == 'S'): # 부호는 무시
+            continue
+        word_list.append(morph['lemma'])
 
     return word_list
 
@@ -278,10 +225,7 @@ def get_hanwoo_dic_matching_def_list(word):
 
     return matching_def_list
 
-
-
 if __name__ == '__main__':
-    etri_portnum.PORT_NUM = 33336
-    result = get_nlp_test_result_socket("박근혜는 구미에서 태어났다.")
+    result = etri_tokenizer("박근혜는 구미에서 태어났다.")
     print (result)
     debug = 1
