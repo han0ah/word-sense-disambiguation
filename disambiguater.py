@@ -184,7 +184,7 @@ class RESentenceDisambiguater(Disambiguater):
 
         input_vector = DataManager.tfidf_obj.transform([text])
         if (len(input_vector.data) == 0):
-            return ""
+            return text
 
         new_wsd_list = []
         entity_open_count = 0
