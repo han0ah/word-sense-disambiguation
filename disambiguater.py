@@ -169,25 +169,22 @@ class RESentenceDisambiguater(Disambiguater):
 
         return max_idx, max_cos_similiarity
 
-    def disambiguate(self, input):
-        if ('text' not in input):
-            return {'error':'Wrong JSON Format'}
-        text = input['text'].strip()
+
+    def disambiguate_sent(self,input):
+        if (input is None):
+            return ""
+
         threshold = input['threshold'] if 'threshold' in input else 0.14
-        etri_result = json.loads(input['etri_result']) if 'etri_result' in input else data_util.get_nlp_test_result(text)
-        if (etri_result is None):
-            return {'result':''}
-        sent = etri_result['sentence'][0]
+        sent = input
         nlp_result_delegate.push_parse_result(sent)
 
-        match_korterm_list = []
         # sent_id 찾기
         text = sent['text'].strip()
         wsd_list = sent['WSD']
 
         input_vector = DataManager.tfidf_obj.transform([text])
         if (len(input_vector.data) == 0):
-            return {'result':''}
+            return ""
 
         new_wsd_list = []
         entity_open_count = 0
@@ -254,14 +251,24 @@ class RESentenceDisambiguater(Disambiguater):
             if (word_idx < len(word_list)-1):
                 new_sent += ' '
 
-        return {'result':new_sent}
+        return new_sent
+
+    def disambiguate(self, input):
+        if ('sentence' not in input):
+            return {'result':[]}
+        sent_list = input['sentence']
+        result = []
+
+        for sent in sent_list:
+            wsd_sent = self.disambiguate_sent(sent)
+            result.append(wsd_sent)
+
+        return {'result':result}
+
 
 if __name__ == "__main__":
     DataManager.init_data()
     m_disambiguater = RESentenceDisambiguater()
 
-    result = m_disambiguater.disambiguate({
-        'text' : '사과는 맛있다.',
-        'threshold' : 0.14,
-        'etri_result' : '{"sentence":[{"id" : 0,"reserve_str" : "","text" : "사과는 맛있다.","morp" : [{"id" : 0, "lemma" : "사과", "type" : "NNG", "position" : 0, "weight" : 0.437589 },{"id" : 1, "lemma" : "는", "type" : "JX", "position" : 6, "weight" : 0.0287565 },{"id" : 2, "lemma" : "맛있", "type" : "VA", "position" : 10, "weight" : 0.9 },{"id" : 3, "lemma" : "다", "type" : "EF", "position" : 16, "weight" : 0.132573 },{"id" : 4, "lemma" : ".", "type" : "SF", "position" : 19, "weight" : 1 }],"WSD" : [{"id" : 0, "text" : "사과", "type" : "NNG", "scode" : "05", "weight" : 2.2, "position" : 0, "begin" : 0, "end" : 0},{"id" : 1, "text" : "는", "type" : "JX", "scode" : "00", "weight" : 1, "position" : 6, "begin" : 1, "end" : 1},{"id" : 2, "text" : "맛있", "type" : "VA", "scode" : "00", "weight" : 0, "position" : 10, "begin" : 2, "end" : 2},{"id" : 3, "text" : "다", "type" : "EF", "scode" : "00", "weight" : 1, "position" : 16, "begin" : 3, "end" : 3},{"id" : 4, "text" : ".", "type" : "SF", "scode" : "00", "weight" : 1, "position" : 19, "begin" : 4, "end" : 4}],"word" : [{"id" : 0, "text" : "사과는", "type" : "", "begin" : 0, "end" : 1},{"id" : 1, "text" : "맛있다.", "type" : "", "begin" : 2, "end" : 4}]}]}'
-    })
+    obj = json.loads('{"sentence":[{"id" : 0,"reserve_str" : "","text" : "사과는 맛있다.","morp" : [{"id" : 0, "lemma" : "사과", "type" : "NNG", "position" : 0, "weight" : 0.437589 },{"id" : 1, "lemma" : "는", "type" : "JX", "position" : 6, "weight" : 0.0287565 },{"id" : 2, "lemma" : "맛있", "type" : "VA", "position" : 10, "weight" : 0.9 },{"id" : 3, "lemma" : "다", "type" : "EF", "position" : 16, "weight" : 0.132573 },{"id" : 4, "lemma" : ".", "type" : "SF", "position" : 19, "weight" : 1 }],"WSD" : [{"id" : 0, "text" : "사과", "type" : "NNG", "scode" : "05", "weight" : 2.2, "position" : 0, "begin" : 0, "end" : 0},{"id" : 1, "text" : "는", "type" : "JX", "scode" : "00", "weight" : 1, "position" : 6, "begin" : 1, "end" : 1},{"id" : 2, "text" : "맛있", "type" : "VA", "scode" : "00", "weight" : 0, "position" : 10, "begin" : 2, "end" : 2},{"id" : 3, "text" : "다", "type" : "EF", "scode" : "00", "weight" : 1, "position" : 16, "begin" : 3, "end" : 3},{"id" : 4, "text" : ".", "type" : "SF", "scode" : "00", "weight" : 1, "position" : 19, "begin" : 4, "end" : 4}],"word" : [{"id" : 0, "text" : "사과는", "type" : "", "begin" : 0, "end" : 1},{"id" : 1, "text" : "맛있다.", "type" : "", "begin" : 2, "end" : 4}]}]}')
+    result = m_disambiguater.disambiguate(obj)
