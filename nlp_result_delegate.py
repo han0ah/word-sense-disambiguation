@@ -11,12 +11,15 @@ def push_parse_result(parse_result):
     }
 
     if (dict_count >= 20):
+        key_to_delete = None
         for key in nlp_tokenize_dict:
             if (nlp_tokenize_dict[key]['index'] == 1):
-                del nlp_tokenize_dict[key]
+                key_to_delete = key
             else:
                 nlp_tokenize_dict[key]['index'] -=1
-        dict_count -= 1
+        if key_to_delete is not None:
+            del nlp_tokenize_dict[key_to_delete]
+            dict_count -= 1
 
 
 
