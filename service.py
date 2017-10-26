@@ -38,7 +38,7 @@ def disambiguate():
     except:
         return '{"error":"Failed to decode request text"}'
 
-    m_disambiguater = DataManager.mrf_disambiguater()
+    m_disambiguater = DataManager.mrf_disambiguater
     result = m_disambiguater.disambiguate(input_obj)
 
     return json.dumps(result)
