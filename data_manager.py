@@ -1,5 +1,5 @@
 import pickle
-import mrf_word_sense_disambiguation
+import disambiguater
 from sklearn.externals import joblib
 
 class DataManager():
@@ -26,6 +26,6 @@ class DataManager():
         DataManager.corenet_data = pickle.load(open('./data/corenet_obj.pickle', 'rb'))
         #DataManager.corenet_data = data_util.read_corenet_definition_data()
         DataManager.korenet_tfidf = joblib.load('./data/korterm_tfidf.pickle')
-        DataManager.mrf_disambiguater = mrf_word_sense_disambiguation.MRFWordSenseDisambiguation()
-        DataManager.mrf_disambiguater.init()
+        DataManager.mrf_disambiguater = disambiguater.DemoMRFDisambiguater()
+        DataManager.mrf_disambiguater.initMRFDisambiguater()
         DataManager.isInitialized = True
