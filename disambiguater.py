@@ -206,6 +206,7 @@ class DemoMRFDisambiguater(Disambiguater):
         if (nlp_result == None):
             return {'wsd_result':[]}
 
+        st_time = int(time.time() * 1000)
         nlp_result = nlp_result['sentence']
         final_output_ary = []
         for sent_nlp_result in nlp_result:
@@ -280,6 +281,7 @@ class DemoMRFDisambiguater(Disambiguater):
                     output_ary.append(one_word_ary)
             if(len(output_ary) > 0):
                 final_output_ary.append(output_ary)
+        print('time_elapsed %d' % (int(round(time.time() * 1000)) - st_time))
         return {'wsd_result': final_output_ary}
 
 
