@@ -2,7 +2,7 @@ import pickle
 import data_util
 import math
 from pgmpy.models import MarkovModel
-from pgmpy.factors import Factor
+import pgmpy.factors
 from pgmpy.inference import BeliefPropagation, VariableElimination, Mplp
 
 class MRFWordSenseDisambiguation:
@@ -131,7 +131,7 @@ class MRFWordSenseDisambiguation:
                 values.append(val)
                 total += val
             values = [v / total for v in values]
-            node_factor = Factor([str(i)], cardinality=[len(Y[i])], values=values)
+            node_factor = pgmpy.factors.Factor([str(i)], cardinality=[len(Y[i])], values=values)
             model.add_factors(node_factor)
 
         for edge in markov_edges:
@@ -157,7 +157,7 @@ class MRFWordSenseDisambiguation:
                     '''
 
             values = [v/total for v in values]
-            edge_factor = Factor([edge[0],edge[1]], cardinality=[len(Y[int(edge[0])]),len(Y[int(edge[1])])], values=values)
+            edge_factor = pgmpy.factors.Factor([edge[0],edge[1]], cardinality=[len(Y[int(edge[0])]),len(Y[int(edge[1])])], values=values)
             model.add_factors(edge_factor)
 
         inferrer = Mplp(model)
