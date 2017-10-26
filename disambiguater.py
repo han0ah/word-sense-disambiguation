@@ -1,4 +1,5 @@
 import corenet
+import mrf_word_sense_disambiguation
 import math
 import data_util
 import random
@@ -193,6 +194,93 @@ class HighFreqDisambiguater(Disambiguater):
             'kortermnum': list(max_candidate['korterm_set'])[0],
             'num_candidates': len(corenet_lemma_obj[input['word']])
         }]
+
+class DemoMRFDisambiguater(Disambiguater):
+    def initMRFDisambiguater(self):
+        self.mrf_disambiguater = mrf_word_sense_disambiguation.MRFWordSenseDisambiguation()
+        self.mrf_disambiguater.init()
+
+    def disambiguate(self, input):
+        text = input['text']
+        nlp_result = data_util.get_nlp_test_result(text)
+        if (nlp_result == None):
+            return {'wsd_result':[]}
+
+        nlp_result = nlp_result['sentence']
+        final_output_ary = []
+        for sent_nlp_result in nlp_result:
+            parse_for_argument = {}
+            parse_for_argument['sentence'] = [sent_nlp_result]
+            parse_result = self.mrf_disambiguater.disambiguate({'text':sent_nlp_result['text'], 'beginIdx':0, 'endIdx':0, 'word':''}, mode='ALL_WORD', parse_result=parse_for_argument)[2]
+            output_ary = []
+            for wsd_word_korterm in parse_result:
+                wsd_word = wsd_word_korterm[0]
+                wsd_korterm = wsd_word_korterm[1]
+                candidate_list = self.mrf_disambiguater.corenet_lemma_obj[wsd_word]
+
+                # 해당 Korterm이 들어있는 후보 번호 찾기
+                selected_num = 0
+                idx = 0
+                for candidate in candidate_list:
+                    for korterm in candidate['korterm_set']:
+                        if wsd_korterm == korterm:
+                            selected_num = idx
+                            break
+                    idx += 1
+
+                # 선택된 후보에 definition이 하나도 없으면 무시
+                if (len(candidate_list[selected_num]['definition_set']) < 1):
+                    continue
+
+                #korterm_set , sense_num_set
+                matching_def_list = DataManager.corenet_data[wsd_word]
+                one_word_ary_selected = []
+                one_word_ary_cand = []
+                for word_def in matching_def_list:
+                    if len(word_def['definition1']) < 1: # 정의문이 없으면 무시
+                        continue
+                    try:
+                        wordnet = corenet.getWordnet(wsd_word, float(word_def['vocnum']), float(word_def['semnum']), only_synonym=True)
+                    except:
+                        wordnet = []
+
+                    en_synset = wordnet[0]['synset']._name if len(wordnet) > 0 else ''
+                    en_lemmas = wordnet[0]['lemmas'] if len(wordnet) > 0 else []
+                    en_definition = wordnet[0]['definition'] if len(wordnet) > 0 else ''
+
+                    curr_sense_id = '(' + str(word_def['vocnum']) + ',' + str(word_def['semnum']) + ')'
+                    item = {
+                            'lemma' : wsd_word,
+                            'senseid' : curr_sense_id,
+                            'definition' : word_def['definition1'],
+                            'usuage' : word_def['usuage'],
+                            'beginIdx' : 0,
+                            'endIdx' : 0,
+                            'en_synset': en_synset,
+                            'en_lemmas' : en_lemmas,
+                            'en_definition' : en_definition,
+                        }
+
+                    is_selected_sense = False
+                    for sense_id in candidate_list[selected_num]['sense_num_set']:
+                        if (curr_sense_id == sense_id):
+                            is_selected_sense = True
+                            break
+
+                    if (is_selected_sense):
+                        item['score'] = 1.0
+                        if (len(one_word_ary_selected) < 5):
+                            one_word_ary_selected.append(item)
+                    else:
+                        item['score'] = 0.0
+                        one_word_ary_cand.append(item)
+
+                one_word_ary = one_word_ary_selected + one_word_ary_cand
+                if (len(one_word_ary) > 0):
+                    output_ary.append(one_word_ary)
+            if(len(output_ary) > 0):
+                final_output_ary.append(output_ary)
+        return {'wsd_result': final_output_ary}
 
 
 class DemoDisambiguater(Disambiguater):
@@ -424,9 +512,9 @@ class RESentenceDisambiguater(Disambiguater):
 
 if __name__ == "__main__":
     DataManager.init_data()
-    m_disambiguater = RESentenceDisambiguater()
+    m_disambiguater = DemoMRFDisambiguater()
+    m_disambiguater.initMRFDisambiguater()
 
     result = m_disambiguater.disambiguate({
-        'text' : '조원동은  << 국도_제1호선 >> 과  << 광교산 >>  삼림욕장 사이에 위치한 기존 단독주택과 아파트가 공존하는 주거 밀집 지역이다.',
-        'threshold' : 0.14
+        'text' : '애플은 스티브 잡스와 스티브 워즈니악과 론 웨인이 1976년에 설립한 컴퓨터 회사이다. 이전 명칭은 애플 컴퓨터였다. 최초의 개인용 컴퓨터 중 하나이며, 최초로 키보드와 모니터를 가지고 있는 애플 I을 출시하였고, 애플 II는 공전의 히트작이 되어 개인용 컴퓨터의 시대를 열었다.',
     })

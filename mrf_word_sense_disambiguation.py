@@ -46,11 +46,11 @@ class MRFWordSenseDisambiguation:
 
         return word, begin_idx
 
-    def disambiguate(self, input, mode="ONE_WORD"):
+    def disambiguate(self, input, mode="ONE_WORD", parse_result=None):
         text = input['text']
 
 
-        etri_parser_result = data_util.get_nlp_test_result(text)
+        etri_parser_result = data_util.get_nlp_test_result(text) if parse_result == None else parse_result
         if (etri_parser_result == None):
             return []
         input_word, input_beginIdx = self.get_word_origin_form(input, etri_parser_result)
@@ -141,7 +141,7 @@ class MRFWordSenseDisambiguation:
                 for yval2 in Y[int(edge[1])]:
                     korterm1 = yval1['kortermnum']
                     korterm2 = yval2['kortermnum']
-                    val = math.log(self.korterm_cooccur_freq[korterm1][korterm2]+2.7183)
+                    val = self.korterm_cooccur_freq[korterm1][korterm2]+1
                     total += val
                     values.append(val)
 
@@ -167,8 +167,6 @@ class MRFWordSenseDisambiguation:
             refined_key = str(key).replace("frozenset({'",'').replace("'})",'')
             result[refined_key] = inferrer.best_assignment[key]
 
-
-
         if (mode == 'ONE_WORD'):
             result_korterm = ""
             for i in range(len(X)):
@@ -180,23 +178,26 @@ class MRFWordSenseDisambiguation:
 
             return [{'sensid':'(20,20)', 'kortermnum':result_korterm}]
         else:
+            result2 = []
             for i in range(len(X)):
                 result_korterm =  Y[i][result[str(i)]]['kortermnum']
                 result[str(i)] = result_korterm
-            return result,etri_parser_result
+                result2.append((X[i]['lemma'],result_korterm))
+            return result,etri_parser_result,result2
 
 
 if __name__ == '__main__':
     input = {
-        'text' : '봄의 이름인 금강을 포함해 여러 가지 이름이 있지만 현재는 대개 금강산이라 [불리며], 계절에 따라 여름에는 봉래산(蓬萊山 ), 가을에는 풍악산(楓嶽山 , 楓岳山 ), 겨울에는 개골산(皆骨山 )으로 불렸다.',
+        'text' : '사과가 참 맛있다.',
         'word' : '불리다',
-        'beginIdx' : 42,
-        'endIdx' : 44
+        'mode' : 'ALL_WORD',
+        'beginIdx' : 0,
+        'endIdx' : 0
     }
 
     disambiguater = MRFWordSenseDisambiguation()
     disambiguater.init()
-    result = disambiguater.disambiguate(input)
+    result = disambiguater.disambiguate(input, mode='All_WORD')
     print(result)
 
 debug = 1
