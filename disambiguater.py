@@ -187,29 +187,11 @@ class RESentenceDisambiguater(Disambiguater):
             return text
 
         new_wsd_list = []
-        entity_open_count = 0
-        prev_text = ''
         for wsd in wsd_list:
-            wsd['is_WSD'] = False
+            wsd['corenet_wsd_num'] = -1
+            wsd['corenet_wsd_score'] = -1.0
             new_wsd_list.append(wsd)
-
-            if (wsd['text'] == '<'):
-                if (entity_open_count == 0):
-                    entity_open_count = 1
-                if (entity_open_count == 1):
-                    if (prev_text == '<'):
-                        entity_open_count = 2
-                    else:
-                        entity_open_count = 0
-            if (wsd['text'] == '>'):
-                if (entity_open_count == 2):
-                    entity_open_count = 1
-                if (entity_open_count == 1):
-                    entity_open_count = 0
-
-            prev_text = wsd['text']
-
-            if (entity_open_count  < 2 and (wsd['type'] == 'NNG' or wsd['type'] == 'VA' or wsd['type'] == 'VV')):
+            if (wsd['type'] == 'NNG' or wsd['type'] == 'VA' or wsd['type'] == 'VV'):
                 word = wsd['text'] + ('다' if (wsd['type'] != 'NNG') else '')
 
                 if (word not in DataManager.corenet_obj):
@@ -221,37 +203,11 @@ class RESentenceDisambiguater(Disambiguater):
                 wsd_result, confidence = self.get_corenet_num(input_vector, word)
                 if (len(wsd_result) < 1):
                     continue
+                new_wsd_list[-1]['corenet_wsd_score'] = confidence
                 if (confidence >= threshold or len(corenet_list) == 1):
-                    word = word + '-@-' + str(wsd_result)
-                    new_wsd_list[-1]['text'] = word
-                    new_wsd_list[-1]['is_WSD'] = True
+                    new_wsd_list[-1]['corenet_wsd_num'] = wsd_result
 
-        new_sent = ""
-        word_list = sent['word']
-        wsd_idx = 0
-        wsd_len = len(new_wsd_list)
-        for word_idx in range(len(word_list)):
-            word = word_list[word_idx]
-            new_word = ''
-            iscontain_wsd = False
-            while wsd_idx < wsd_len:
-                if (wsd_list[wsd_idx]['begin'] >= word['begin'] and wsd_list[wsd_idx]['end'] <= word['end']):
-                    if(wsd_list[wsd_idx]['is_WSD']):
-                        iscontain_wsd = True
-                        if (len(new_word) > 0):
-                            new_word += ' '
-                    new_word += wsd_list[wsd_idx]['text']
-                else:
-                    break
-                wsd_idx += 1
-            if (iscontain_wsd):
-                new_sent += new_word
-            else:
-                new_sent += word['text']
-            if (word_idx < len(word_list)-1):
-                new_sent += ' '
-
-        return new_sent
+        return {'WSD':new_wsd_list}
 
     def disambiguate(self, input):
         if ('sentence' not in input):
@@ -270,5 +226,7 @@ if __name__ == "__main__":
     DataManager.init_data()
     m_disambiguater = RESentenceDisambiguater()
 
-    obj = json.loads('{"sentence":[{"id" : 0,"reserve_str" : "","text" : "사과는 맛있다.","morp" : [{"id" : 0, "lemma" : "사과", "type" : "NNG", "position" : 0, "weight" : 0.437589 },{"id" : 1, "lemma" : "는", "type" : "JX", "position" : 6, "weight" : 0.0287565 },{"id" : 2, "lemma" : "맛있", "type" : "VA", "position" : 10, "weight" : 0.9 },{"id" : 3, "lemma" : "다", "type" : "EF", "position" : 16, "weight" : 0.132573 },{"id" : 4, "lemma" : ".", "type" : "SF", "position" : 19, "weight" : 1 }],"WSD" : [{"id" : 0, "text" : "사과", "type" : "NNG", "scode" : "05", "weight" : 2.2, "position" : 0, "begin" : 0, "end" : 0},{"id" : 1, "text" : "는", "type" : "JX", "scode" : "00", "weight" : 1, "position" : 6, "begin" : 1, "end" : 1},{"id" : 2, "text" : "맛있", "type" : "VA", "scode" : "00", "weight" : 0, "position" : 10, "begin" : 2, "end" : 2},{"id" : 3, "text" : "다", "type" : "EF", "scode" : "00", "weight" : 1, "position" : 16, "begin" : 3, "end" : 3},{"id" : 4, "text" : ".", "type" : "SF", "scode" : "00", "weight" : 1, "position" : 19, "begin" : 4, "end" : 4}],"word" : [{"id" : 0, "text" : "사과는", "type" : "", "begin" : 0, "end" : 1},{"id" : 1, "text" : "맛있다.", "type" : "", "begin" : 2, "end" : 4}]}]}')
+    obj = json.loads('{"sentence":[{"id" : 0,"reserve_str" : "","text" : "사과는 맛있다.","morp" : [{"id" : 0, "lemma" : "사과", "type" : "NNG", "position" : 0, "weight" : 0.437589 },{"id" : 1, "lemma" : "는", "type" : "JX", "position" : 6, "weight" : 0.0287565 },{"id" : 2, "lemma" : "맛있", "type" : "VA", "position" : 10, "weight" : 0.9 },{"id" : 3, "lemma" : "다", "type" : "EF", "position" : 16, "weight" : 0.132573 },{"id" : 4, "lemma" : ".", "type" : "SF", "position" : 19, "weight" : 1 }],"WSD" : [{"id" : 0, "text" : "사과", "type" : "NNG", "scode" : "05", "weight" : 2.2, "position" : 0, "begin" : 0, "end" : 0},{"id" : 1, "text" : "는", "type" : "JX", "scode" : "00", "weight" : 1, "position" : 6, "begin" : 1, "end" : 1},{"id" : 2, "text" : "맛있", "type" : "VA", "scode" : "00", "weight" : 0, "position" : 10, "begin" : 2, "end" : 2},{"id" : 3, "text" : "다", "type" : "EF", "scode" : "00", "weight" : 1, "position" : 16, "begin" : 3, "end" : 3},{"id" : 4, "text" : ".", "type" : "SF", "scode" : "00", "weight" : 1, "position" : 19, "begin" : 4, "end" : 4}],"word" : [{"id" : 0, "text" : "사과는", "type" : "", "begin" : 0, "end" : 1},{"id" : 1, "text" : "맛있다.", "type" : "", "begin" : 2, "end" : 4}]},{"id" : 0,"reserve_str" : "","text" : "배를 탔다.","morp" : [{"id" : 0, "lemma" : "배", "type" : "NNG", "position" : 0, "weight" : 0.391613 },{"id" : 1, "lemma" : "를", "type" : "JKO","position" : 3, "weight" : 0.137686 },{"id" : 2, "lemma" : "타", "type" : "VV", "position" : 7, "weight" : 0.743915 },{"id" : 3, "lemma" : "았", "type" : "EP", "position" : 7, "weight": 0.9 },{"id" : 4, "lemma" : "다", "type" : "EF", "position" : 10, "weight" : 0.640954 },{"id" : 5, "lemma" : ".", "type" : "SF", "position" : 13, "weight" : 1 }],"morp_eval" : [{"id" : 0, "result" : "배/NNG+를/JKO", "target" : "배를", "word_id" : 0, "m_begin" : 0, "m_end" : 1},{"id" : 1, "result" : "타/VV+었/EP+다/EF+./SF", "target" : "탔다.", "word_id" : 1, "m_begin" : 2, "m_end" : 5}],"WSD" : [{"id" : 0, "text" : "배", "type" : "NNG", "scode" : "02", "weight" : 2.18629, "position" : 0, "begin" : 0, "end" : 0},{"id" : 1, "text" : "를", "type" : "JKO", "scode" : "00", "weight" : 1, "position" : 3, "begin" : 1, "end" : 1},{"id" : 2, "text" : "타", "type" : "VV", "scode" : "02", "weight" : 2.1971, "position" : 7, "begin" : 2, "end" : 2},{"id" : 3, "text" : "았", "type" : "EP", "scode" : "00", "weight" : 1, "position" : 7, "begin" : 3, "end" : 3},{"id" : 4, "text" : "다", "type" : "EF", "scode" : "00", "weight" : 1, "position" : 10, "begin" : 4, "end" : 4},{"id" : 5, "text" : ".", "type" : "SF", "scode" : "00", "weight" : 1, "position" : 13, "begin" : 5, "end" : 5}],"word" : [{"id" : 0, "text" : "배를", "type" : "", "begin" : 0, "end" : 1},{"id" : 1, "text" : "탔다.", "type" : "", "begin" : 2, "end" : 5}],"NE" : [{"id" : 0, "text" : "배", "type" : "AF_TRANSPORT", "begin" : 0, "end" : 0, "weight" : 0.266886, "common_noun" : 0}],"chunk" : [],"dependency" : [{"id" : 0, "text" : "배를", "head" : 1, "label" : "NP_OBJ", "mod" : [], "weight" : 0.864235 },{"id" : 1, "text" : "탔다.", "head" : -1, "label" : "VP", "mod" : [0], "weight" : 0.64429 }],"phrase_dependency" : [{"id" : 0, "label" : "NP_OBJ", "text" : "배를", "begin" : 0, "end" : 0, "key_begin" : 0, "head_phrase" : 1, "sub_phrase" : [], "weight" : 0, "element" : [] },{"id" : 1, "label" : "VP", "text" : "P#0@OBJ를 탔다.", "begin" : 0, "end" : 1, "key_begin" : 1, "head_phrase" : -1, "sub_phrase" : [0], "weight" : 0, "element" : [] }],"SRL" : [],"relation" : [],"SA" : [],"ZA" : []}]}')
+    #obj = json.loads('{"sentence":[{"id" : 0,"reserve_str" : "","text" : "사과는 맛있다.","morp" : [{"id" : 0, "lemma" : "사과", "type" : "NNG", "position" : 0, "weight" : 0.437589 },{"id" : 1, "lemma" : "는", "type" : "JX", "position" : 6, "weight" : 0.0287565 },{"id" : 2, "lemma" : "맛있", "type" : "VA", "position" : 10, "weight" : 0.9 },{"id" : 3, "lemma" : "다", "type" : "EF", "position" : 16, "weight" : 0.132573 },{"id" : 4, "lemma" : ".", "type" : "SF", "position" : 19, "weight" : 1 }],"WSD" : [{"id" : 0, "text" : "사과", "type" : "NNG", "scode" : "05", "weight" : 2.2, "position" : 0, "begin" : 0, "end" : 0},{"id" : 1, "text" : "는", "type" : "JX", "scode" : "00", "weight" : 1, "position" : 6, "begin" : 1, "end" : 1},{"id" : 2, "text" : "맛있", "type" : "VA", "scode" : "00", "weight" : 0, "position" : 10, "begin" : 2, "end" : 2},{"id" : 3, "text" : "다", "type" : "EF", "scode" : "00", "weight" : 1, "position" : 16, "begin" : 3, "end" : 3},{"id" : 4, "text" : ".", "type" : "SF", "scode" : "00", "weight" : 1, "position" : 19, "begin" : 4, "end" : 4}],"word" : [{"id" : 0, "text" : "사과는", "type" : "", "begin" : 0, "end" : 1},{"id" : 1, "text" : "맛있다.", "type" : "", "begin" : 2, "end" : 4}]}]}')
     result = m_disambiguater.disambiguate(obj)
+    debug = 1
